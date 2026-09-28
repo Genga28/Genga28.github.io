@@ -1,0 +1,1337 @@
+<!doctype html><!--WRAP-->
+<html lang="en"><!--WRAP-->
+<head><!--WRAP-->
+<meta charset="utf-8"><!--WRAP-->
+<meta name="viewport" content="width=device-width, initial-scale=1"><!--WRAP-->
+<meta name="description" content="Genga K — Applied AI Engineer. Production RAG pipelines, agentic workflows, real-time voice and vision systems."><!--WRAP-->
+<meta name="author" content="Genga K"><!--WRAP-->
+<meta property="og:type" content="website"><!--WRAP-->
+<meta property="og:title" content="Genga K — Applied AI Engineer"><!--WRAP-->
+<meta property="og:description" content="I build AI systems that hold up in production: multi-signal scoring, real-time RAG, voice agents, hybrid OCR."><!--WRAP-->
+<meta property="og:image" content="assets/og.png"><!--WRAP-->
+<meta name="twitter:card" content="summary_large_image"><!--WRAP-->
+<title>Genga K — Applied AI Engineer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* ============================================================
+   GENGA K — PORTFOLIO
+   Editorial dark. Typography-led, soft surfaces, generous air.
+   No monospace, no neon. Colour is spent in one place: the
+   accent on live/current state.
+   ============================================================ */
+
+:root{
+  color-scheme: dark;
+
+  --bg:#0B0E13;
+  --bg-2:#0E1219;
+  --surface:#121721;
+  --surface-2:#171D28;
+  --surface-3:#1D2531;
+
+  --line:#212936;
+  --line-soft:#1A212C;
+
+  --txt:#EDF1F7;
+  --txt-2:#9BA7B7;
+  --txt-3:#6D7887;
+  --txt-4:#4B5563;
+
+  --accent:#7AB8FF;
+  --accent-2:#4A87D0;
+  --accent-ink:#071726;
+  --accent-wash:rgba(122,184,255,.09);
+  --warm:#F0B98C;
+
+  --ok:#5FD08A;
+  --warn:#EFC15E;
+  --high:#F0A05C;
+  --crit:#EE7F7F;
+
+  --r-sm:8px; --r:14px; --r-lg:20px; --r-xl:26px;
+  --maxw:1140px;
+  --gut:clamp(22px, 5vw, 58px);
+  --ease:cubic-bezier(.16,1,.3,1);
+
+  --fd:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --fb:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html{ -webkit-text-size-adjust:100%; }
+html.lenis,html.lenis body{ height:auto; }
+.lenis.lenis-smooth{ scroll-behavior:auto !important; }
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--txt);
+  font-family:var(--fb);
+  font-size:16.5px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+
+img{ max-width:100%; display:block; }
+a{ color:inherit; text-decoration:none; }
+button{ font:inherit; color:inherit; background:none; border:0; cursor:pointer; }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; border-radius:3px; }
+
+.vignette{
+  position:fixed; inset:0; z-index:59; pointer-events:none;
+  background:radial-gradient(130% 100% at 50% 0%, transparent 52%, rgba(0,0,0,.42) 100%);
+}
+
+.wrap{ width:100%; max-width:var(--maxw); margin-inline:auto; padding-inline:var(--gut); }
+.sec{ padding-block:clamp(78px,10vw,140px); position:relative; }
+.sec + .sec{ border-top:1px solid var(--line-soft); }
+
+.sec-head{ display:flex; flex-direction:column; gap:12px; margin-bottom:clamp(38px,5vw,60px); max-width:64ch; }
+.eyebrow{ font-size:13px; font-weight:600; letter-spacing:.02em; color:var(--accent); margin:0; }
+.sec-title{
+  font-family:var(--fd); font-weight:700; letter-spacing:-.034em;
+  font-size:clamp(30px,4.6vw,50px); line-height:1.05; margin:0; text-wrap:balance;
+}
+.sec-sub{ color:var(--txt-2); margin:0; font-size:17px; max-width:56ch; }
+
+/* ---------------- nav ---------------- */
+.nav{ position:fixed; top:0; left:0; right:0; z-index:50; border-bottom:1px solid transparent; transition:background .5s var(--ease), border-color .5s var(--ease); }
+.nav.stuck{ background:rgba(11,14,19,.86); backdrop-filter:blur(16px) saturate(150%); -webkit-backdrop-filter:blur(16px) saturate(150%); border-bottom-color:var(--line-soft); }
+.nav-inner{ max-width:var(--maxw); margin-inline:auto; padding:15px var(--gut); display:flex; align-items:center; justify-content:space-between; gap:20px; }
+.brand{ font-family:var(--fd); font-weight:700; letter-spacing:-.025em; font-size:17px; }
+.nav-links{ display:flex; align-items:center; gap:2px; }
+.nav-links a{ font-size:14.5px; color:var(--txt-2); padding:8px 14px; border-radius:100px; transition:color .35s var(--ease), background .35s var(--ease); }
+.nav-links a:hover{ color:var(--txt); background:var(--surface); }
+.nav-links a.active{ color:var(--txt); background:var(--surface-2); }
+.nav-right{ display:flex; align-items:center; gap:10px; }
+.progress{ position:absolute; left:0; bottom:-1px; height:2px; width:0%; background:var(--accent); opacity:.8; }
+
+.menu-btn{ display:none; width:40px; height:40px; border:1px solid var(--line); border-radius:50%; place-items:center; }
+.menu-btn i{ display:block; width:15px; height:1.5px; background:var(--txt); position:relative; transition:background .3s; }
+.menu-btn i::before,.menu-btn i::after{ content:""; position:absolute; left:0; width:15px; height:1.5px; background:var(--txt); transition:transform .4s var(--ease); }
+.menu-btn i::before{ top:-5px; } .menu-btn i::after{ top:5px; }
+.nav.open .menu-btn i{ background:transparent; }
+.nav.open .menu-btn i::before{ transform:translateY(5px) rotate(45deg); }
+.nav.open .menu-btn i::after{ transform:translateY(-5px) rotate(-45deg); }
+
+@media (max-width:920px){
+  .menu-btn{ display:grid; }
+  .nav-links{
+    position:fixed; inset:62px 0 auto 0; flex-direction:column; align-items:stretch; gap:0;
+    background:rgba(11,14,19,.98); backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--line-soft); padding:8px var(--gut) 22px;
+    clip-path:inset(0 0 100% 0); transition:clip-path .55s var(--ease);
+  }
+  .nav.open .nav-links{ clip-path:inset(0 0 0 0); }
+  .nav-links a{ padding:14px 2px; font-size:17px; border-radius:0; border-bottom:1px solid var(--line-soft); }
+  .nav-right .btn{ display:none; }
+}
+
+/* ---------------- buttons ---------------- */
+.btn{
+  display:inline-flex; align-items:center; gap:9px; font-size:14.5px; font-weight:500;
+  padding:12px 22px; border-radius:100px; border:1px solid var(--line);
+  color:var(--txt); background:var(--surface); white-space:nowrap;
+  transition:border-color .4s var(--ease), background .4s var(--ease), transform .4s var(--ease);
+}
+.btn:hover{ background:var(--surface-2); border-color:var(--surface-3); transform:translateY(-2px); }
+.btn .arr{ transition:transform .45s var(--ease); }
+.btn:hover .arr{ transform:translateX(3px); }
+.btn-primary{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600; }
+.btn-primary:hover{ background:#96C8FF; border-color:#96C8FF; }
+.btn-sm{ padding:9px 16px; font-size:13.5px; }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero{ position:relative; padding-top:clamp(116px,15vw,168px); padding-bottom:clamp(58px,7vw,92px); overflow:hidden; }
+#signal{ position:absolute; inset:0; width:100%; height:100%; z-index:0; filter:blur(1.4px); opacity:.62; }
+.hero-glow{ position:absolute; z-index:0; pointer-events:none; width:min(1100px,130vw); aspect-ratio:1; left:50%; top:-32%; transform:translateX(-50%); background:radial-gradient(circle, rgba(122,184,255,.10) 0%, transparent 62%); }
+.hero-inner{ position:relative; z-index:2; }
+
+.hero-grid{ display:grid; grid-template-columns:1.16fr .84fr; gap:clamp(30px,5vw,70px); align-items:center; }
+.hero-copy{ min-width:0; }
+
+.portrait{
+  position:relative; margin-left:auto; width:100%; max-width:380px; aspect-ratio:4/5;
+  border:1px solid var(--line); border-radius:var(--r-xl); overflow:hidden;
+  background:var(--surface); box-shadow:0 48px 100px -50px rgba(0,0,0,.9);
+  opacity:0; animation:fadeUp 1.1s var(--ease) .5s forwards;
+}
+.portrait img{ width:100%; height:100%; object-fit:cover; }
+.photo-fallback{ position:absolute; inset:0; display:grid; place-items:center; background:linear-gradient(155deg,var(--surface-2),var(--bg-2)); }
+.photo-fallback span{ font-family:var(--fd); font-weight:800; font-size:clamp(46px,7vw,76px); letter-spacing:-.05em; color:var(--surface-3); }
+.portrait-tag{
+  position:absolute; left:0; right:0; bottom:0; padding:16px 18px; z-index:2;
+  background:linear-gradient(0deg,rgba(11,14,19,.95),rgba(11,14,19,.5) 60%,transparent);
+  font-size:13.5px; color:var(--txt-2); display:flex; justify-content:space-between; align-items:center; gap:10px;
+}
+.portrait-tag .live{ color:var(--accent); display:inline-flex; align-items:center; gap:7px; font-weight:500; }
+.portrait-tag .live b{ width:6px; height:6px; border-radius:50%; background:var(--accent); animation:pulse 2.4s var(--ease) infinite; }
+@keyframes pulse{ 0%,100%{ transform:scale(.62); opacity:.6 } 50%{ transform:scale(1); opacity:1 } }
+
+@media (max-width:920px){
+  .hero-grid{ grid-template-columns:1fr; gap:26px; }
+  .hero-portrait{ order:-1; }
+  .portrait{ width:108px; max-width:108px; aspect-ratio:1; margin:0; border-radius:50%; animation-delay:.08s; }
+  .portrait-tag{ display:none; }
+  .photo-fallback span{ font-size:36px; }
+}
+
+.avail{
+  display:inline-flex; align-items:center; gap:9px; margin:0 0 24px;
+  font-size:14px; color:var(--txt-2); border:1px solid var(--line);
+  background:var(--surface); padding:7px 16px 7px 12px; border-radius:100px;
+}
+.avail b{ width:7px; height:7px; border-radius:50%; background:var(--ok); animation:pulse 2.2s var(--ease) infinite; }
+
+h1.display{
+  font-family:var(--fd); font-weight:800; letter-spacing:-.045em;
+  font-size:clamp(40px,7.4vw,78px); line-height:1.0; margin:0 0 22px; max-width:14ch;
+}
+h1.display em{ font-style:normal; color:var(--accent); }
+.line{ display:block; overflow:hidden; padding-bottom:.05em; }
+.line > span{ display:block; transform:translateY(105%); animation:riseIn 1.05s var(--ease) forwards; }
+@keyframes riseIn{ to{ transform:translateY(0); } }
+.line:nth-child(1) > span{ animation-delay:.06s; }
+.line:nth-child(2) > span{ animation-delay:.15s; }
+.line:nth-child(3) > span{ animation-delay:.24s; }
+
+.lede{ font-size:clamp(17px,1.8vw,20px); color:var(--txt-2); max-width:46ch; margin:0 0 32px; opacity:0; animation:fadeUp .95s var(--ease) .42s forwards; }
+.lede strong{ color:var(--txt); font-weight:500; }
+@keyframes fadeUp{ from{ opacity:0; transform:translateY(16px); } to{ opacity:1; transform:none; } }
+
+.cta-row{ display:flex; gap:11px; flex-wrap:wrap; opacity:0; animation:fadeUp .95s var(--ease) .56s forwards; }
+
+.telemetry{
+  margin-top:clamp(48px,6vw,78px); border:1px solid var(--line-soft); border-radius:var(--r-lg);
+  background:var(--bg-2); display:grid; grid-template-columns:repeat(4,1fr);
+  overflow:hidden; opacity:0; animation:fadeUp 1s var(--ease) .7s forwards;
+}
+.tm{ padding:22px 24px; border-left:1px solid var(--line-soft); display:flex; flex-direction:column; gap:2px; }
+.tm:first-child{ border-left:0; }
+.tm .v{ font-family:var(--fd); font-weight:700; font-size:clamp(22px,2.8vw,32px); letter-spacing:-.03em; font-variant-numeric:tabular-nums; line-height:1.15; }
+.tm .v i{ font-style:normal; color:var(--accent); }
+.tm .k{ font-size:13.5px; color:var(--txt-3); }
+@media (max-width:760px){
+  .telemetry{ grid-template-columns:repeat(2,1fr); }
+  .tm:nth-child(3){ border-left:0; }
+  .tm:nth-child(3),.tm:nth-child(4){ border-top:1px solid var(--line-soft); }
+}
+
+/* ============================================================
+   TIMELINE BAR
+   ============================================================ */
+.tl-scroll{ overflow-x:auto; padding-bottom:6px; margin-bottom:clamp(40px,5vw,62px); }
+.tl{ min-width:600px; }
+.tl-axis{
+  display:grid; grid-template-columns:var(--label-w) 1fr; gap:20px; align-items:end;
+  padding-bottom:10px; margin-bottom:6px;
+}
+.tl-years{ position:relative; height:18px; }
+.tl-years span{ position:absolute; top:0; transform:translateX(-50%); font-size:12.5px; color:var(--txt-4); font-variant-numeric:tabular-nums; }
+.tl-rows{ display:flex; flex-direction:column; gap:7px; --label-w:150px; }
+.tl{ --label-w:150px; }
+.tl-row{
+  display:grid; grid-template-columns:var(--label-w) 1fr; gap:20px; align-items:center;
+  width:100%; text-align:left; padding:5px 0; border-radius:var(--r-sm);
+  transition:background .4s var(--ease);
+}
+.tl-row:hover{ background:var(--surface); }
+.tl-label{ min-width:0; }
+.tl-label b{ display:block; font-family:var(--fd); font-weight:600; font-size:15px; letter-spacing:-.015em; line-height:1.3; }
+.tl-label span{ display:block; font-size:12.5px; color:var(--txt-3); line-height:1.35; }
+.tl-track{ position:relative; height:34px; border-radius:var(--r-sm); background:var(--bg-2); overflow:hidden; }
+.tl-grid{ position:absolute; inset:0; }
+.tl-grid i{ position:absolute; top:0; bottom:0; width:1px; background:var(--line-soft); }
+.tl-bar{
+  position:absolute; top:7px; bottom:7px; border-radius:100px;
+  background:var(--surface-3); border:1px solid var(--line);
+  display:flex; align-items:center; padding-inline:12px;
+  font-size:12.5px; color:var(--txt-2); white-space:nowrap; overflow:hidden;
+  transform-origin:left center; transform:scaleX(0);
+  animation:barIn .9s var(--ease) forwards;
+  transition:background .4s var(--ease), border-color .4s var(--ease);
+}
+@keyframes barIn{ to{ transform:scaleX(1); } }
+.tl-row:hover .tl-bar{ background:var(--surface-3); border-color:var(--accent-2); }
+.tl-bar.now{ background:var(--accent-wash); border-color:var(--accent); color:var(--accent); }
+.tl-bar.now::after{
+  content:""; position:absolute; right:7px; width:6px; height:6px; border-radius:50%;
+  background:var(--accent); animation:pulse 2.2s var(--ease) infinite;
+}
+@media (max-width:640px){ .tl{ --label-w:118px; } .tl-label b{ font-size:14px; } }
+
+/* ============================================================
+   ROLES
+   ============================================================ */
+.roles{ display:flex; flex-direction:column; }
+.role{ border-top:1px solid var(--line-soft); }
+.role:last-child{ border-bottom:1px solid var(--line-soft); }
+.role-head{ width:100%; display:grid; grid-template-columns:1fr auto auto; gap:22px; align-items:center; padding:26px 6px; text-align:left; border-radius:var(--r); transition:background .45s var(--ease); }
+.role-head:hover{ background:var(--surface); }
+.role-id{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+.role-co{ font-family:var(--fd); font-weight:700; font-size:clamp(20px,2.5vw,28px); letter-spacing:-.03em; line-height:1.18; }
+.role-title{ font-size:14.5px; color:var(--accent); }
+.role-when{ font-size:14px; color:var(--txt-3); text-align:right; font-variant-numeric:tabular-nums; }
+.role-when small{ display:block; color:var(--txt-4); font-size:13px; }
+.role-toggle{ position:relative; width:34px; height:34px; border:1px solid var(--line); border-radius:50%; display:grid; place-items:center; flex:none; transition:border-color .4s var(--ease), background .4s var(--ease), transform .55s var(--ease); }
+.role-toggle::before,.role-toggle::after{ content:""; position:absolute; background:var(--txt-2); transition:opacity .4s var(--ease), background .4s var(--ease); }
+.role-toggle::before{ width:12px; height:1.5px; }
+.role-toggle::after{ width:1.5px; height:12px; }
+.role.open .role-toggle{ border-color:var(--accent); background:var(--accent-wash); transform:rotate(180deg); }
+.role.open .role-toggle::after{ opacity:0; }
+.role.open .role-toggle::before{ background:var(--accent); }
+.role-body{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .7s var(--ease); }
+.role.open .role-body{ grid-template-rows:1fr; }
+.role-body > div{ overflow:hidden; }
+.role-inner{ padding:0 6px 32px; display:flex; flex-direction:column; gap:22px; }
+@media (max-width:760px){
+  .role-head{ grid-template-columns:1fr auto; gap:12px; }
+  .role-when{ grid-column:1; text-align:left; }
+  .role-toggle{ grid-row:1/3; align-self:center; }
+}
+.bullets{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px; max-width:72ch; }
+.bullets li{ position:relative; padding-left:20px; color:var(--txt-2); font-size:16px; }
+.bullets li::before{ content:""; position:absolute; left:0; top:12px; width:8px; height:1.5px; border-radius:2px; background:var(--accent); opacity:.7; }
+.bullets li b{ color:var(--txt); font-weight:600; }
+.bullets li .num{ color:var(--warm); font-weight:500; font-variant-numeric:tabular-nums; }
+
+.chips{ display:flex; flex-wrap:wrap; gap:7px; }
+.chip{ font-size:13px; color:var(--txt-3); border:1px solid var(--line-soft); background:var(--bg-2); padding:5px 12px; border-radius:100px; transition:color .35s var(--ease), border-color .35s var(--ease); }
+.chip:hover{ color:var(--txt); border-color:var(--surface-3); }
+
+/* ============================================================
+   CASES
+   ============================================================ */
+.cases{ display:flex; flex-direction:column; gap:18px; }
+.case{ position:relative; border:1px solid var(--line-soft); border-radius:var(--r-xl); background:var(--bg-2); overflow:hidden; transition:border-color .5s var(--ease); }
+.case:hover{ border-color:var(--line); }
+.case::before{ content:""; position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .5s var(--ease); background:radial-gradient(560px circle at var(--mx,50%) var(--my,0%), rgba(122,184,255,.055), transparent 62%); }
+.case:hover::before{ opacity:1; }
+.case.feature{ border-color:#243448; background:linear-gradient(170deg,#101823,var(--bg-2) 60%); }
+
+.case-top{ padding:clamp(26px,3.2vw,38px) clamp(24px,3vw,38px) clamp(20px,2.4vw,26px); display:grid; grid-template-columns:1fr auto; gap:16px 26px; align-items:start; }
+.case-kick{ font-size:13.5px; color:var(--txt-3); display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+.case-kick .org{ color:var(--accent); font-weight:500; }
+.case-kick .dot{ width:3px; height:3px; border-radius:50%; background:var(--txt-4); }
+.case-title{ font-family:var(--fd); font-weight:700; font-size:clamp(22px,3.1vw,34px); letter-spacing:-.032em; line-height:1.1; margin:10px 0 0; text-wrap:balance; }
+.case-lede{ color:var(--txt-2); margin:12px 0 0; max-width:62ch; font-size:16.5px; }
+.case-badge{ font-size:13px; font-weight:500; color:var(--warm); border:1px solid #3B3022; background:rgba(240,185,140,.07); padding:6px 14px; border-radius:100px; white-space:nowrap; }
+
+.case-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line-soft); border-top:1px solid var(--line-soft); }
+.cg{ background:var(--bg-2); padding:22px clamp(24px,3vw,38px); display:flex; flex-direction:column; gap:6px; }
+.cg h4{ font-size:13px; font-weight:600; color:var(--txt-3); margin:0; }
+.cg p{ margin:0; color:var(--txt-2); font-size:15.5px; line-height:1.56; }
+.cg.win p{ color:var(--txt); }
+@media (max-width:820px){ .case-grid{ grid-template-columns:1fr; } .case-top{ grid-template-columns:1fr; } }
+
+.flow{ display:flex; align-items:center; flex-wrap:wrap; gap:0; padding:20px clamp(24px,3vw,38px); border-top:1px solid var(--line-soft); }
+.flow-step{ font-size:13px; color:var(--txt-2); border:1px solid var(--line); background:var(--surface); padding:7px 14px; border-radius:100px; white-space:nowrap; }
+.flow-step.hot{ border-color:var(--accent-2); color:var(--accent); background:var(--accent-wash); }
+.flow-arr{ width:22px; height:1px; background:var(--line); flex:none; }
+
+.demo{ border-top:1px solid var(--line-soft); padding:clamp(24px,3vw,38px); }
+.demo-frame{ position:relative; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:#000; aspect-ratio:16/9; }
+.demo-frame video,.demo-frame iframe{ width:100%; height:100%; display:block; border:0; object-fit:cover; }
+.demo-cap{ font-size:13.5px; color:var(--txt-3); margin:12px 0 0; }
+
+.case-foot{ padding:20px clamp(24px,3vw,38px); border-top:1px solid var(--line-soft); display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between; }
+
+/* ---------------- fusion ---------------- */
+.fusion{ border-top:1px solid var(--line-soft); padding:clamp(26px,3.4vw,40px) clamp(24px,3vw,38px); display:grid; grid-template-columns:1fr 1fr; gap:clamp(28px,4vw,52px); align-items:center; }
+@media (max-width:900px){ .fusion{ grid-template-columns:1fr; } }
+.fusion h4{ font-size:13px; font-weight:600; color:var(--txt-3); margin:0 0 4px; }
+.fusion .hint{ color:var(--txt-2); font-size:15px; margin:0 0 20px; max-width:42ch; }
+
+.sigs{ display:flex; flex-direction:column; gap:16px; }
+.sig{ display:grid; grid-template-columns:1fr auto; gap:4px 12px; align-items:center; }
+.sig label{ font-size:14.5px; color:var(--txt-2); }
+.sig label i{ font-style:normal; color:var(--txt-4); font-size:13px; }
+.sig .val{ font-size:15px; font-weight:600; color:var(--sig-c,var(--accent)); font-variant-numeric:tabular-nums; }
+.sig input[type=range]{ grid-column:1/3; -webkit-appearance:none; appearance:none; width:100%; height:22px; background:transparent; cursor:grab; }
+.sig input[type=range]:active{ cursor:grabbing; }
+.sig input[type=range]::-webkit-slider-runnable-track{ height:4px; border-radius:4px; background:linear-gradient(90deg,var(--sig-c,var(--accent)) var(--p,50%), var(--surface-3) var(--p,50%)); }
+.sig input[type=range]::-moz-range-track{ height:4px; border-radius:4px; background:var(--surface-3); }
+.sig input[type=range]::-moz-range-progress{ height:4px; border-radius:4px; background:var(--sig-c,var(--accent)); }
+.sig input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:15px; height:15px; border-radius:50%; background:var(--bg); border:2px solid var(--sig-c,var(--accent)); margin-top:-5.5px; transition:transform .25s var(--ease); }
+.sig input[type=range]::-moz-range-thumb{ width:15px; height:15px; border-radius:50%; background:var(--bg); border:2px solid var(--sig-c,var(--accent)); }
+.sig input[type=range]:hover::-webkit-slider-thumb{ transform:scale(1.22); }
+
+.gauge{ display:flex; flex-direction:column; gap:15px; }
+.gauge-score{ display:flex; align-items:flex-end; gap:16px; }
+.gauge-num{ font-family:var(--fd); font-weight:800; font-size:clamp(54px,9vw,88px); line-height:.84; letter-spacing:-.055em; font-variant-numeric:tabular-nums; transition:color .5s var(--ease); }
+.gauge-of{ font-size:14px; color:var(--txt-4); padding-bottom:10px; }
+.band-pill{ font-size:13px; font-weight:600; padding:6px 14px; border-radius:100px; border:1px solid currentColor; align-self:center; margin-bottom:9px; transition:color .5s var(--ease); }
+.meter{ position:relative; height:10px; border-radius:100px; overflow:hidden; background:var(--surface); }
+.meter-bands{ position:absolute; inset:0; display:flex; opacity:.3; }
+.meter-bands i{ display:block; height:100%; }
+.meter-fill{ position:absolute; left:0; top:0; bottom:0; width:0%; background:currentColor; transition:width .55s var(--ease), color .5s var(--ease); border-radius:100px; }
+.meter-scale{ display:flex; justify-content:space-between; font-size:12.5px; color:var(--txt-4); font-variant-numeric:tabular-nums; }
+.episodes{ display:flex; flex-direction:column; gap:8px; }
+.ep{ display:flex; align-items:center; gap:10px; font-size:14px; color:var(--txt-2); }
+.ep b{ width:7px; height:7px; border-radius:50%; flex:none; }
+.ep .t{ color:var(--txt-4); font-variant-numeric:tabular-nums; margin-left:auto; }
+.gauge-note{ font-size:12.5px; color:var(--txt-4); line-height:1.55; margin:0; }
+
+/* ---------------- stack ---------------- */
+.stack{ display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line-soft); border:1px solid var(--line-soft); border-radius:var(--r-lg); overflow:hidden; }
+@media (max-width:820px){ .stack{ grid-template-columns:1fr; } }
+.stack-col{ background:var(--bg-2); padding:26px clamp(22px,2.6vw,30px); display:flex; flex-direction:column; gap:15px; transition:background .5s var(--ease); }
+.stack-col:hover{ background:var(--surface); }
+.stack-col h3{ font-family:var(--fd); font-weight:600; font-size:15.5px; letter-spacing:-.015em; color:var(--txt); margin:0; display:flex; align-items:center; gap:10px; }
+.stack-col h3 span{ font-size:13px; color:var(--txt-4); font-weight:400; margin-left:auto; font-variant-numeric:tabular-nums; }
+
+/* ---------------- writing ---------------- */
+.posts{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+@media (max-width:980px){ .posts{ grid-template-columns:1fr 1fr; } }
+@media (max-width:660px){ .posts{ grid-template-columns:1fr; } }
+.post{ position:relative; text-align:left; border:1px solid var(--line-soft); border-radius:var(--r-lg); background:var(--bg-2); padding:26px; display:flex; flex-direction:column; gap:12px; min-height:216px; transition:border-color .5s var(--ease), transform .5s var(--ease), background .5s var(--ease); }
+.post:hover{ border-color:var(--line); transform:translateY(-4px); background:var(--surface); }
+.post-meta{ font-size:13px; color:var(--txt-3); display:flex; gap:8px; align-items:center; }
+.post-meta .tag{ color:var(--accent); font-weight:500; }
+.post h3{ font-family:var(--fd); font-weight:700; font-size:20px; letter-spacing:-.025em; line-height:1.2; margin:0; }
+.post p{ margin:0; color:var(--txt-2); font-size:15px; line-height:1.55; }
+.post .more{ margin-top:auto; font-size:14px; color:var(--accent); display:flex; align-items:center; gap:7px; }
+.post .more .arr{ transition:transform .45s var(--ease); }
+.post:hover .more .arr{ transform:translateX(4px); }
+
+.reader{ position:fixed; inset:0; z-index:80; display:grid; place-items:end center; pointer-events:none; }
+.reader[hidden]{ display:none !important; }
+.reader-bg{ position:absolute; inset:0; background:rgba(6,8,12,.74); backdrop-filter:blur(6px); opacity:0; transition:opacity .5s var(--ease); }
+.reader-panel{ position:relative; width:min(750px,100%); max-height:92vh; overflow-y:auto; background:var(--bg-2); border:1px solid var(--line); border-bottom:0; border-radius:var(--r-xl) var(--r-xl) 0 0; padding:clamp(30px,4vw,50px); transform:translateY(102%); transition:transform .7s var(--ease); }
+.reader.on{ pointer-events:auto; }
+.reader.on .reader-bg{ opacity:1; }
+.reader.on .reader-panel{ transform:translateY(0); }
+.reader-close{ position:absolute; top:20px; right:20px; width:36px; height:36px; border:1px solid var(--line); border-radius:50%; display:grid; place-items:center; font-size:15px; color:var(--txt-2); transition:border-color .4s, color .4s; }
+.reader-close:hover{ border-color:var(--accent); color:var(--accent); }
+.reader-panel h2{ font-family:var(--fd); font-weight:700; font-size:clamp(26px,3.6vw,36px); letter-spacing:-.034em; line-height:1.12; margin:14px 0 10px; text-wrap:balance; }
+.article{ color:var(--txt-2); font-size:16.5px; }
+.article p{ margin:0 0 17px; max-width:64ch; }
+.article h3{ font-family:var(--fd); font-weight:700; color:var(--txt); font-size:20px; letter-spacing:-.025em; margin:32px 0 11px; }
+.article ul{ margin:0 0 17px; padding-left:20px; display:flex; flex-direction:column; gap:9px; }
+.article strong{ color:var(--txt); font-weight:600; }
+.article code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:14px; color:var(--accent); background:var(--surface); padding:2px 7px; border-radius:6px; }
+.article .pull{ border-left:2px solid var(--accent); padding:4px 0 4px 20px; margin:24px 0; color:var(--txt); font-size:18px; }
+
+/* ---------------- about ---------------- */
+.about-body{ display:flex; flex-direction:column; gap:34px; max-width:72ch; }
+.about-body p{ margin:0; color:var(--txt-2); font-size:17.5px; }
+.about-body p strong{ color:var(--txt); font-weight:500; }
+.facts{ display:flex; flex-direction:column; margin:0; }
+.fact{ display:grid; grid-template-columns:118px 1fr; gap:20px; padding:18px 0; border-top:1px solid var(--line-soft); }
+.fact:last-child{ border-bottom:1px solid var(--line-soft); }
+.fact dt{ font-size:13.5px; color:var(--txt-3); padding-top:3px; }
+.fact dd{ margin:0; color:var(--txt-2); font-size:15.5px; }
+.fact dd b{ color:var(--txt); font-weight:600; display:block; }
+.fact dd em{ font-style:normal; font-size:14px; color:var(--txt-4); }
+@media (max-width:560px){ .fact{ grid-template-columns:1fr; gap:5px; } }
+.awards{ list-style:none; margin:0; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:660px){ .awards{ grid-template-columns:1fr; } }
+.awards li{ display:flex; gap:13px; align-items:flex-start; font-size:15px; color:var(--txt-2); border:1px solid var(--line-soft); border-radius:var(--r); padding:15px 17px; background:var(--bg-2); }
+.awards li span{ font-family:var(--fd); font-weight:700; font-size:14px; color:var(--accent); flex:none; padding-top:1px; font-variant-numeric:tabular-nums; }
+
+/* ---------------- contact ---------------- */
+.contact{ display:grid; grid-template-columns:1fr 1fr; gap:clamp(30px,4vw,60px); align-items:start; }
+@media (max-width:900px){ .contact{ grid-template-columns:1fr; } }
+h2.big{ font-family:var(--fd); font-weight:800; letter-spacing:-.042em; font-size:clamp(34px,5.6vw,58px); line-height:1.02; margin:14px 0 18px; text-wrap:balance; }
+h2.big em{ font-style:normal; color:var(--accent); }
+.links{ display:flex; flex-direction:column; border-top:1px solid var(--line-soft); }
+.link-row{ display:grid; grid-template-columns:100px 1fr auto; gap:16px; align-items:center; padding:18px 4px; border-bottom:1px solid var(--line-soft); text-align:left; width:100%; transition:background .4s var(--ease), padding .4s var(--ease); }
+.link-row:hover{ background:var(--surface); padding-inline:14px 10px; }
+.link-row .k{ font-size:13.5px; color:var(--txt-3); }
+.link-row .v{ font-size:16px; color:var(--txt); overflow-wrap:anywhere; }
+.link-row .go{ font-size:13.5px; color:var(--txt-4); transition:color .4s var(--ease); white-space:nowrap; }
+.link-row:hover .go{ color:var(--accent); }
+@media (max-width:560px){ .link-row{ grid-template-columns:1fr auto; } .link-row .k{ grid-column:1/3; } }
+
+.footer{ border-top:1px solid var(--line-soft); padding-block:36px; }
+.footer-inner{ display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; font-size:13.5px; color:var(--txt-4); }
+.footer-inner a:hover{ color:var(--accent); }
+
+.toast{ position:fixed; left:50%; bottom:28px; z-index:90; transform:translate(-50%,20px); background:var(--surface-2); border:1px solid var(--line); border-radius:100px; padding:11px 22px; font-size:14px; color:var(--txt); opacity:0; pointer-events:none; transition:opacity .4s var(--ease), transform .4s var(--ease); box-shadow:0 20px 50px -20px rgba(0,0,0,.9); }
+.toast.on{ opacity:1; transform:translate(-50%,0); }
+
+.js .reveal{ opacity:0; transform:translateY(22px); }
+.js .reveal.in{ opacity:1; transform:none; transition:opacity .85s var(--ease), transform .85s var(--ease); transition-delay:calc(var(--i,0) * 70ms); }
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+  .js .reveal{ opacity:1 !important; transform:none !important; }
+  .line > span{ transform:none !important; }
+  .lede,.cta-row,.telemetry,.portrait{ opacity:1 !important; }
+  .tl-bar{ transform:scaleX(1) !important; }
+}
+</style>
+</head><!--WRAP-->
+<body><!--WRAP-->
+
+<div class="vignette" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="#top" class="brand">Genga&nbsp;K</a>
+    <nav class="nav-links" id="navLinks" aria-label="Sections">
+      <a href="#work">Work</a>
+      <a href="#systems">Systems</a>
+      <a href="#stack">Stack</a>
+      <a href="#writing">Writing</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <div class="nav-right">
+      <a class="btn btn-sm btn-primary" href="mailto:kgenga2002@gmail.com?subject=Let%27s%20talk">Get in touch</a>
+      <button class="menu-btn" id="menuBtn" aria-label="Toggle menu" aria-expanded="false"><i></i></button>
+    </div>
+  </div>
+  <div class="progress" id="progress"></div>
+</header>
+
+<main>
+
+<!-- ============================ HERO ============================ -->
+<section class="hero" id="top">
+  <canvas id="signal" aria-hidden="true"></canvas>
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="wrap hero-inner">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <p class="avail"><b aria-hidden="true"></b>Open to AI / ML engineering roles</p>
+        <h1 class="display">
+          <span class="line"><span>I build AI</span></span>
+          <span class="line"><span>systems that hold</span></span>
+          <span class="line"><span>up in <em>production</em>.</span></span>
+        </h1>
+        <p class="lede">
+          Applied AI engineer at <strong>Jobtwine</strong>. RAG pipelines, agentic workflows,
+          real-time voice and vision — owned end to end.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#systems">See the work <span class="arr" aria-hidden="true">→</span></a>
+          <a class="btn" id="resumeBtn" href="GENGA_K_RESUME.pdf" target="_blank" rel="noopener">Résumé</a>
+          <a class="btn" href="https://www.linkedin.com/in/gengak" target="_blank" rel="noopener">LinkedIn</a>
+          <a class="btn" href="https://github.com/Genga28" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+
+      <aside class="hero-portrait">
+        <div class="portrait">
+          <div class="photo-fallback" id="photoFallback"><span>GK</span></div>
+          <img id="photo" alt="Genga K" hidden>
+          <div class="portrait-tag">
+            <span>Bengaluru, India</span>
+            <span class="live"><b aria-hidden="true"></b>Available</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="telemetry" role="list">
+      <div class="tm" role="listitem"><span class="v">10–<i>50</i></span><span class="k">Concurrent live sessions</span></div>
+      <div class="tm" role="listitem"><span class="v">~<i>5K</i></span><span class="k">Documents / day in prod</span></div>
+      <div class="tm" role="listitem"><span class="v"><i>50K</i></span><span class="k">Retrieval chunks grounded</span></div>
+      <div class="tm" role="listitem"><span class="v"><i>4</i></span><span class="k">Signals fused per score</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ WORK ============================ -->
+<section class="sec" id="work">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">Experience</p>
+      <h2 class="sec-title">Where I&rsquo;ve shipped.</h2>
+      <p class="sec-sub">Five roles since 2022. Open any one to read what I built.</p>
+    </div>
+
+    <div class="tl-scroll reveal">
+      <div class="tl" id="timeline"></div>
+    </div>
+
+    <div class="roles reveal" id="roles"></div>
+  </div>
+</section>
+
+<!-- =========================== SYSTEMS ========================== -->
+<section class="sec" id="systems">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">Selected systems</p>
+      <h2 class="sec-title">Eight things I built.</h2>
+      <p class="sec-sub">The flagship is first, and it&rsquo;s live — drag the sliders.</p>
+    </div>
+    <div class="cases" id="cases"></div>
+  </div>
+</section>
+
+<!-- ============================ STACK =========================== -->
+<section class="sec" id="stack">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">Toolchain</p>
+      <h2 class="sec-title">What I reach for.</h2>
+    </div>
+    <div class="stack reveal" id="stackGrid"></div>
+  </div>
+</section>
+
+<!-- =========================== WRITING ========================== -->
+<section class="sec" id="writing">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">Writing</p>
+      <h2 class="sec-title">Notes from the build.</h2>
+    </div>
+    <div class="posts reveal" id="posts"></div>
+  </div>
+</section>
+
+<!-- ============================ ABOUT =========================== -->
+<section class="sec" id="about">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">Background</p>
+      <h2 class="sec-title">Short version.</h2>
+    </div>
+
+    <div class="about-body reveal">
+      <p>
+        Five-year integrated M.Sc. in <strong>Decision and Computing Sciences</strong> at Coimbatore
+        Institute of Technology, 9.45 CGPA. RPA at EXL Health, OCR for loan underwriting at Yubi,
+        a freelance stint leading a small team, now applied AI at Jobtwine.
+      </p>
+      <p>
+        I care about the unglamorous half: <strong>calibration, guardrails, latency budgets, and
+        evaluation you can defend</strong>. A demo that works once is easy.
+      </p>
+
+      <dl class="facts">
+        <div class="fact">
+          <dt>Education</dt>
+          <dd><b>Coimbatore Institute of Technology</b>M.Sc. Decision and Computing Sciences — 9.45 CGPA<em>Sept 2020 – Apr 2025</em></dd>
+        </div>
+        <div class="fact">
+          <dt>Publication</dt>
+          <dd><b>Logistics Optimization for E-commerce</b>Cut delivery overhead 20% with demand forecasting and spatial clustering.<em>IJPREMS</em></dd>
+        </div>
+        <div class="fact">
+          <dt>Teaching</dt>
+          <dd><b>Big Data with PySpark</b>Hands-on sessions for 60+ students at Vellammal Engineering College.</dd>
+        </div>
+      </dl>
+
+      <ul class="awards">
+        <li><span>450+</span><div>LeetCode problems. 3 Gold badges on HackerRank.</div></li>
+        <li><span>2nd</span><div>PitchDeck runner-up — GenAlpha chatbot concept.</div></li>
+        <li><span>2nd</span><div>Tell a Tale, Melinia — encryption and BI analytics.</div></li>
+        <li><span>100K</span><div>Tata Virtual Internship — EDA across 100,000+ points.</div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =========================== CONTACT ========================== -->
+<section class="sec" id="contact">
+  <div class="wrap">
+    <div class="contact">
+      <div class="reveal">
+        <p class="eyebrow">Contact</p>
+        <h2 class="big">Got something that has to <em>actually work</em>?</h2>
+        <p class="sec-sub">Open to AI/ML engineering roles and consulting on retrieval, voice, and evaluation.</p>
+        <div class="cta-row" style="animation:none;opacity:1;margin-top:26px">
+          <a class="btn btn-primary" href="mailto:kgenga2002@gmail.com?subject=Let%27s%20talk">Email me <span class="arr" aria-hidden="true">→</span></a>
+          <button class="btn" data-copy="kgenga2002@gmail.com">Copy address</button>
+        </div>
+      </div>
+      <div class="links reveal" id="links"></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span>© <span id="yr"></span> Genga K — Bengaluru, India</span>
+    <a href="#top">Back to top ↑</a>
+  </div>
+</footer>
+
+<div class="reader" id="reader" hidden>
+  <div class="reader-bg" data-close></div>
+  <article class="reader-panel" role="dialog" aria-modal="true" aria-labelledby="readerTitle">
+    <button class="reader-close" data-close aria-label="Close">✕</button>
+    <div class="post-meta" id="readerMeta"></div>
+    <h2 id="readerTitle"></h2>
+    <div class="article" id="readerBody"></div>
+  </article>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js"></script>
+<script>
+/* ============================================================
+   CONFIG — the three things to fill in
+   1. photo  → assets/genga.jpg   (shows a "GK" plate until then)
+   2. resume → GENGA_K_RESUME.pdf next to index.html
+   3. videos → per case-study id; local path or YouTube EMBED url.
+               Empty string = no player, card stays complete.
+   ============================================================ */
+const CONFIG = {
+  photo: "assets/genga.jpg",
+  resume: "GENGA_K_RESUME.pdf",
+  videos: {
+    proctoring: "", rag: "", voice: "", ocr: "",
+    shelf: "", profiling: "", specialisation: "", outbreak: ""
+  }
+};
+
+/* ---------------------------------------------------------------
+   DATA
+   --------------------------------------------------------------- */
+const ROLES = [
+  {
+    co:"Jobtwine", title:"AI Engineer", when:"Jul 2025 — Present", where:"Bengaluru",
+    start:[2025,7], end:null,
+    bullets:[
+      "Architected a multi-signal <b>AI proctoring engine</b> — scores content, AI-likeliness, audio and video independently, fuses them with weighted blending plus exponential boost into a calibrated <span class='num'>0–100</span> score with risk bands and flagged episodes.",
+      "Built <b>LLM interview tooling</b> end to end: JD-to-playbook generator, semantic resume shortlister, and post-interview analytics with generated debriefs.",
+      "Shipped a real-time <b>RAG pipeline</b> over <span class='num'>~10–50K</span> chunks of rubrics and JDs, eliminating context-absence failures in the interviewer LLM.",
+      "Designed an <b>async FastAPI backend</b> — <span class='num'>10-worker</span> SQS queue, multiprocessing, <span class='num'>10–50</span> concurrent sessions, <span class='num'>1000+</span> queued requests.",
+      "Shipped a <b>WebRTC voice agent</b> with streaming and turn-based modes, barge-in detection and multi-turn memory.",
+      "Built a <b>MediaPipe CV pipeline</b> — gaze tracking, face presence, lip-sync correlation at <span class='num'>~10 FPS</span>."
+    ],
+    tech:["Python","RoBERTa","OpenCV","Dlib","NLTK","Wav2Lip","MediaPipe","ASR","TTS","LangGraph","SQS","RAG","Pinecone","LangChain","Flask","MCP","Agentic AI","LLM-as-judge"]
+  },
+  {
+    co:"Space Marvel AI", title:"AI Consultant · Freelance", when:"Jan — Jul 2025", where:"Remote",
+    start:[2025,1], end:[2025,7],
+    bullets:[
+      "Led a <b>three-person team</b> across three AI systems — owned architecture, set the agent orchestration pattern, ran design reviews.",
+      "Delivered a <b>shelf-auditing system</b>: CV segmentation localizes product clusters, a VLM stage reads SKU names and counts, driving automated restock alerts.",
+      "Built an <b>outbound tele-caller bot</b> on ASR → LLM → TTS, handling interruptions and classifying outcomes at <span class='num'>200 calls/day</span>.",
+      "Created a <b>voice-driven desktop agent</b> that reads browser and window state to automate multi-step workflows via tool calling."
+    ],
+    tech:["Python","LLM agents","VLM","OpenCV","ASR/TTS","Tool calling","FastAPI"]
+  },
+  {
+    co:"Yubi", title:"Data Scientist Intern", when:"Dec 2024 — Jun 2025", where:"Chennai",
+    start:[2024,12], end:[2025,6],
+    bullets:[
+      "Shipped <b>OCR + LLM classification APIs</b> into loan processing — KYC and financial extraction at <span class='num'>~5,000 docs/day</span> across <span class='num'>50,000+</span> batch runs.",
+      "Built a <b>hybrid OCR engine</b> preserving layout by replicating pixel coordinates and spacing — beat PaddleOCR, Tesseract and AWS Textract on multi-column PDFs across <span class='num'>30+</span> document types.",
+      "Engineered <b>validation modules</b> detecting file tampering and verifying signature originality, flagging low-trust documents pre-underwriting.",
+      "Devised an <b>ASR/TTS audio bot</b> extracting behavioural signals around loan-repayment intent."
+    ],
+    tech:["Python","GPT-4o","llama.cpp","Fine-tuning","OCR","FastAPI","AWS SageMaker","OpenCV","Transformers","AWS Transcribe","Whisper"]
+  },
+  {
+    co:"EXL Health", title:"Data Engineer Intern · R&D", when:"Jun — Nov 2023", where:"Chennai",
+    start:[2023,6], end:[2023,11],
+    bullets:[
+      "Programmed <b>RPA applications</b> driving graphical and web interfaces, removing manual steps from repeated workflows.",
+      "Ran <b>data wrangling</b> on scraped data with text mining and NLP — <span class='num'>95%</span> cut in task completion time.",
+      "Built a custom <b>ETL tool</b> to extract, clean and load web data — <span class='num'>60%</span> faster processing."
+    ],
+    tech:["Python","Lackey","PyAutoGUI","Tesseract OCR","Selenium","HiveQL","RPA","NLP"]
+  },
+  {
+    co:"Elamigo", title:"Data Science Intern", when:"Dec 2022 — Feb 2023", where:"Bengaluru",
+    start:[2022,12], end:[2023,2],
+    bullets:[
+      "Scraped and structured data across <span class='num'>~40</span> industry sectors into a queryable database, then ran EDA surfacing <span class='num'>15+</span> partnership insights."
+    ],
+    tech:["MySQL","BeautifulSoup","Selenium","Power BI"]
+  }
+];
+
+const CASES = [
+  {
+    id:"proctoring", feature:true, badge:"Flagship", org:"Jobtwine", year:"2025", kind:"Real-time scoring",
+    title:"Multi-signal AI proctoring engine",
+    lede:"Four noisy detectors watching a live interview, fused into one number a hiring panel can defend.",
+    problem:"Fire on one detector and you get false accusations. Require all four and you get silence.",
+    approach:"Weighted blend across the four signals, plus an exponential boost so one extreme reading can escalate — but never convict alone.",
+    result:"A reviewable score, not a verdict. Every number traces back to timestamped episodes.",
+    flow:["Live session","Content","AI-likeliness","Audio","Video","Fusion","0–100"], hot:[5,6],
+    tech:["Python","RoBERTa","MediaPipe","OpenCV","Dlib","Wav2Lip","ASR","Multiprocessing"],
+    fusion:true
+  },
+  {
+    id:"rag", org:"Jobtwine", year:"2025", kind:"Retrieval",
+    title:"Real-time RAG for a live interviewer",
+    lede:"Grounding an interviewer LLM in rubrics and JDs, fast enough that the candidate never hears it happen.",
+    problem:"An ungrounded interviewer invents requirements and drifts off the rubric mid-session.",
+    approach:"Index 10–50K rubric and JD chunks in Pinecone, retrieve against live conversation state, inject only what the turn needs.",
+    result:"Context-absence failures eliminated. Every question traces to a retrieved chunk.",
+    flow:["Turn state","Query","Pinecone","Rerank","Grounded prompt","LLM"], hot:[2,5],
+    tech:["RAG","Pinecone","LangChain","LangGraph","FastAPI","Python"]
+  },
+  {
+    id:"voice", org:"Jobtwine", year:"2025", kind:"Real-time voice",
+    title:"WebRTC voice agent with barge-in",
+    lede:"Streaming and turn-based modes, with interruption handling that survives being talked over.",
+    problem:"Turn-based agents feel like walkie-talkies. Streaming agents talk over people.",
+    approach:"Dual-mode WebRTC transport, barge-in detection on the inbound stream, clean TTS cancellation, memory threaded through agent state.",
+    result:"Conversations that hold their thread across a full interview instead of resetting each turn.",
+    flow:["WebRTC","VAD · barge-in","ASR","Agent + memory","TTS"], hot:[1,3],
+    tech:["WebRTC","ASR","TTS","LangGraph","Agentic AI","Python"]
+  },
+  {
+    id:"ocr", org:"Yubi", year:"2024–25", kind:"Document AI",
+    title:"Hybrid layout-preserving OCR",
+    lede:"Rules and an LLM working the same page, rebuilding multi-column financial PDFs at pixel level.",
+    problem:"Off-the-shelf OCR flattens layout — a number ends up on the wrong label, and a loan gets written on it.",
+    approach:"Replicate pixel coordinates and spacing to preserve structure; deterministic rules where the format is known, LLM where it isn't.",
+    result:"Beat PaddleOCR, Tesseract and Textract across 30+ document types at ~5,000 docs/day.",
+    flow:["PDF","Layout parse","Rules","LLM fallback","Coord replay","Key-values"], hot:[2,3],
+    tech:["OCR","GPT-4o","llama.cpp","Transformers","AWS SageMaker","FastAPI"]
+  },
+  {
+    id:"shelf", org:"Space Marvel AI", year:"2025", kind:"CV + VLM",
+    title:"Retail shelf auditing",
+    lede:"Segmentation finds where the products are; a VLM reads what they are and how many.",
+    problem:"Manual audits are stale on arrival, and pure detection needs retraining for every new SKU.",
+    approach:"Two stages — CV segmentation localizes clusters, then a VLM identifies SKU names and counts inside each.",
+    result:"Automated restock alerts with no per-SKU model to maintain. New products need a prompt, not a retrain.",
+    flow:["Shelf image","Segmentation","Crops","VLM","Restock alert"], hot:[1,3],
+    tech:["VLM","OpenCV","Python","LLM agents","FastAPI"]
+  },
+  {
+    id:"profiling", org:"Independent", year:"2025", kind:"Inference economics",
+    title:"Why a 3B outserved a 4B by 5×",
+    lede:"A roofline and KV-concurrency model that predicted serving throughput better than parameter count.",
+    problem:"Model choice was being made on benchmark scores, which say nothing about concurrent users per GPU.",
+    approach:"Roofline model for decode latency plus a KV-cache concurrency model, validated with torch.profiler and vLLM under AWQ and FP8.",
+    result:"3B served 5× the throughput of a 4B at equal latency — KV footprint, not parameters, was binding.",
+    flow:["Roofline","KV concurrency","vLLM","torch.profiler","AWQ / FP8","CUDA graphs"], hot:[0,1],
+    tech:["vLLM","torch.profiler","AWQ","FP8","CUDA graphs","PyTorch"]
+  },
+  {
+    id:"specialisation", org:"Independent", year:"2025", kind:"Fine-tuning + eval",
+    title:"Small-model specialisation",
+    lede:"A QLoRA fine-tune is easy. Proving it improved — and gating CI on that proof — is the work.",
+    problem:"Without statistical testing you can't tell an improvement from noise, let alone block a regression.",
+    approach:"QLoRA with PEFT and TRL, wrapped in three eval tiers: deterministic checks, LLM-as-judge validated by Cohen's kappa, and McNemar's test for paired significance.",
+    result:"A CI gate that fails on a significant regression rather than on a moved average.",
+    flow:["Base","QLoRA","Rules","LLM judge","McNemar","CI gate"], hot:[4,5],
+    tech:["QLoRA","PEFT","TRL","LLM-as-judge","Cohen's kappa","McNemar","PyTorch"]
+  },
+  {
+    id:"outbreak", org:"Academic", year:"2024", kind:"Full stack + DL",
+    title:"Disease outbreak portal",
+    lede:"A CNN reading chest X-rays and an NLP classifier filtering misinformation, in one live dashboard.",
+    problem:"During an outbreak, diagnostic signal and public misinformation travel the same channels.",
+    approach:"CNN for X-ray disease detection paired with an NLP fake-news classifier, surfaced in a parallax MERN dashboard.",
+    result:"97% accuracy on X-ray detection, 92% on fake-news classification.",
+    flow:["X-ray","CNN","News feed","NLP filter","Dashboard"], hot:[1,3],
+    tech:["CNN","NLP","MERN","Deep learning","Python"],
+    link:"https://github.com/Genga28/Disease_Outbreak_Portal-Covid-19-"
+  }
+];
+
+const STACK = [
+  { h:"AI & LLM systems", items:["RAG","Agentic AI","LangGraph","LangChain","MCP","Multi-agent","LLM-as-judge","Prompt engineering","Fine-tuning","QLoRA","PEFT","TRL","Transformers","RoBERTa","GPT-4o","llama.cpp","vLLM"] },
+  { h:"Speech & vision", items:["ASR","TTS","Whisper","AWS Transcribe","Azure Cognitive","WebRTC","OpenCV","MediaPipe","Dlib","Wav2Lip","OCR","Tesseract","PaddleOCR","NLTK"] },
+  { h:"Backend & infrastructure", items:["FastAPI","Flask","Django","Streamlit","AWS SQS","AWS SageMaker","Multiprocessing","Docker","Kubernetes","PyTorch"] },
+  { h:"Data & storage", items:["Pinecone","MySQL","MongoDB","Oracle","HiveQL","Power BI","Predictive analytics","Time series"] },
+  { h:"Languages", items:["Python","R","Java","C++","JavaScript","React"] },
+  { h:"Automation & foundations", items:["Selenium","PyAutoGUI","Lackey","VBA","RPA","BeautifulSoup","DSA","Operating systems","DBMS"] }
+];
+
+const POSTS = [
+  {
+    tag:"Inference", date:"2025", read:"6 min",
+    title:"Why a 3B model outserved a 4B by 5×",
+    dek:"Parameter count told us nothing about concurrent users per GPU. The KV cache told us everything.",
+    body:`
+      <p>Model selection usually happens on a leaderboard — pick the smallest model that clears your quality bar, assume cost scales with parameter count. When I profiled this properly, a 3B served roughly <strong>five times</strong> the throughput of a 4B at equal latency, and the gap had almost nothing to do with the extra billion parameters.</p>
+      <h3>Decode is memory-bound</h3>
+      <p>During autoregressive decode you read the entire weight matrix to produce a single token. Arithmetic intensity is terrible. Roofline analysis puts decode firmly on the memory-bandwidth side of the ridge point, so latency tracks <em>bytes moved per token</em>, not FLOPs. That's exactly why <code>AWQ</code> and <code>FP8</code> buy latency — fewer bytes moved, same operation count.</p>
+      <h3>The real constraint is KV footprint</h3>
+      <p class="pull">Concurrency is a memory budget problem. Whatever VRAM the weights don't occupy is what you spend on KV cache — and that residue sets your batch size.</p>
+      <p>The two models differed in hidden size and head configuration in a way that made per-token KV noticeably heavier on the 4B. Once weights were resident, leftover VRAM divided by per-sequence KV gave a much smaller concurrent batch. Fewer sequences in flight means worse batching efficiency, which on a memory-bound workload compounds.</p>
+      <h3>What I'd check first, next time</h3>
+      <ul>
+        <li>Per-token KV bytes at your real context length, not at 512 tokens.</li>
+        <li>Residual VRAM after weights at your chosen quantisation.</li>
+        <li>Whether <code>CUDA graphs</code> are actually capturing — ungraphed decode leaves launch overhead on the table at small batch.</li>
+        <li>Measured throughput under <code>vLLM</code> at target latency, verified with <code>torch.profiler</code>.</li>
+      </ul>
+      <p>None of this is exotic. It's just that the number everyone quotes is the one that doesn't predict what you're paying for.</p>
+    `
+  },
+  {
+    tag:"Evaluation", date:"2025", read:"5 min",
+    title:"Fusing four noisy signals into a defensible score",
+    dek:"Any single proctoring detector is wrong often enough to be unusable. The problem is what you do with four.",
+    body:`
+      <p>Building a detector is the easy half. The hard half is what happens when four detectors disagree and a person has to act on it.</p>
+      <h3>Why OR and AND both fail</h3>
+      <p>Fire on any single detector and you get false accusations — gaze drifts because someone is thinking, not cheating. Require all four to agree and you get silence, because real incidents rarely light up every channel at once. Neither rule is defensible to the person on the receiving end.</p>
+      <h3>Weighted blend, plus a boost</h3>
+      <p>A weighted sum handles the ordinary case. But a pure linear blend under-reacts to a single extreme reading — a content signal at 98 gets averaged into irrelevance by three quiet channels.</p>
+      <p class="pull">So the blend carries an exponential boost keyed on the strongest signal. One channel screaming can escalate the score, without any single channel being able to convict.</p>
+      <h3>Bands, not verdicts</h3>
+      <p>Output is calibrated to 0–100 and cut into risk bands, and every score carries the <strong>timestamped episodes</strong> that produced it. A reviewer gets an argument they can audit, not a verdict they must trust. When someone disputes a result, the conversation is about specific moments in a recording — not about whether the model is trustworthy in the abstract.</p>
+      <ul>
+        <li>Calibration is a product decision. Band boundaries are where policy lives.</li>
+        <li>Any score a human will argue with must ship with its evidence attached.</li>
+        <li>Fusion weights need to be few and named, so non-engineers can review them.</li>
+      </ul>
+    `
+  },
+  {
+    tag:"Fine-tuning", date:"2025", read:"5 min",
+    title:"A three-tier eval harness for a small model",
+    dek:"QLoRA gave me a number that looked better. Statistics told me whether to believe it.",
+    body:`
+      <p>Fine-tuning a small model with <code>QLoRA</code> takes an afternoon. Knowing whether the result is genuinely better — reliably enough to gate CI on — took considerably longer.</p>
+      <h3>Tier 1 — deterministic</h3>
+      <p>Format validity, schema conformance, refusal behaviour. Anything with a correct answer. Cheap, runs on every commit, and catches the failures that would otherwise waste judge tokens.</p>
+      <h3>Tier 2 — judge, with agreement measured</h3>
+      <p>A judge model scores what resists unit testing. The discipline here isn't the prompt — it's measuring <strong>Cohen's kappa</strong> between judge and human raters on a held-out slice. A judge you haven't validated is a random number generator with good manners.</p>
+      <h3>Tier 3 — paired significance</h3>
+      <p class="pull">A moved average is not a result. <strong>McNemar's test</strong> on paired base-versus-tuned outcomes tells you whether the difference survives your actual sample size.</p>
+      <p>This is the tier that turns evaluation into a gate. CI fails on a statistically significant regression, not on noise — which means the team trusts it enough to leave it on.</p>
+      <ul>
+        <li>Each tier costs an order of magnitude more than the last, so cheap checks filter first.</li>
+        <li>The tiers fail for different reasons, making a red build diagnosable.</li>
+        <li>Only the top tier claims quality; the lower two claim correctness. Keeping them separate stops a formatting bug reading as a capability regression.</li>
+      </ul>
+    `
+  }
+];
+
+const LINKS = [
+  { k:"Email",    v:"kgenga2002@gmail.com",       href:"mailto:kgenga2002@gmail.com", go:"Write" },
+  { k:"Phone",    v:"+91 82488 70532",            href:"tel:+918248870532",           go:"Call" },
+  { k:"LinkedIn", v:"linkedin.com/in/gengak",     href:"https://www.linkedin.com/in/gengak", go:"Open ↗" },
+  { k:"GitHub",   v:"github.com/Genga28",         href:"https://github.com/Genga28",  go:"Open ↗" },
+  { k:"LeetCode", v:"leetcode.com/u/kgenga2811",  href:"https://leetcode.com/u/kgenga2811/", go:"Open ↗" },
+  { k:"Based in", v:"Bengaluru, India",           href:"",                            go:"IST · UTC+5:30" }
+];
+
+/* ---------------------------------------------------------------
+   RENDER
+   --------------------------------------------------------------- */
+const $  = (s,r=document) => r.querySelector(s);
+const $$ = (s,r=document) => Array.from(r.querySelectorAll(s));
+
+document.documentElement.classList.add("js");
+$("#yr").textContent = new Date().getFullYear();
+
+/* ---------- career timeline (Gantt — handles overlapping roles) ---------- */
+(function(){
+  const now = new Date();
+  const T0 = 2022 + 8/12;                                  // Sep 2022
+  const T1 = now.getFullYear() + (now.getMonth()+2)/12;    // a month past today
+  const span = T1 - T0;
+  const at = ([y,m]) => ((y + (m-1)/12) - T0) / span * 100;
+
+  const years = [];
+  for(let y = 2023; y <= now.getFullYear(); y++) years.push(y);
+
+  const rows = ROLES.map((r,i) => {
+    const x  = at(r.start);
+    const x2 = r.end ? at(r.end) : 100;
+    const current = !r.end;
+    return `
+      <button class="tl-row" data-role="${i}">
+        <span class="tl-label"><b>${r.co}</b><span>${r.title.split(" · ")[0]}</span></span>
+        <span class="tl-track">
+          <span class="tl-grid">${years.map(y=>`<i style="left:${at([y,1])}%"></i>`).join("")}</span>
+          <span class="tl-bar${current?" now":""}"
+                style="left:${x}%;width:${Math.max(x2-x,7)}%;animation-delay:${.15+i*.09}s">${r.when}</span>
+        </span>
+      </button>`;
+  }).join("");
+
+  $("#timeline").innerHTML = `
+    <div class="tl-axis">
+      <span></span>
+      <span class="tl-years">${years.map(y=>`<span style="left:${at([y,1])}%">${y}</span>`).join("")}</span>
+    </div>
+    <div class="tl-rows">${rows}</div>`;
+})();
+
+/* ---------- roles ---------- */
+$("#roles").innerHTML = ROLES.map((r,i) => `
+  <article class="role${i===0?" open":""}" id="role-${i}">
+    <button class="role-head" aria-expanded="${i===0}">
+      <span class="role-id"><span class="role-co">${r.co}</span><span class="role-title">${r.title}</span></span>
+      <span class="role-when">${r.when}<small>${r.where}</small></span>
+      <span class="role-toggle" aria-hidden="true"></span>
+    </button>
+    <div class="role-body"><div><div class="role-inner">
+      <ul class="bullets">${r.bullets.map(b=>`<li>${b}</li>`).join("")}</ul>
+      <div class="chips">${r.tech.map(t=>`<span class="chip">${t}</span>`).join("")}</div>
+    </div></div></div>
+  </article>`).join("");
+
+/* ---------- cases ---------- */
+const FUSION_HTML = `
+<div class="fusion">
+  <div>
+    <h4>Live — signal fusion</h4>
+    <p class="hint">Drag any signal. The blend is weighted, then boosted when one channel runs hot.</p>
+    <div class="sigs">
+      <div class="sig" style="--sig-c:#7AB8FF">
+        <label for="s-content">Content <i>weight 0.30</i></label><span class="val" id="v-content">24</span>
+        <input id="s-content" type="range" min="0" max="100" value="24" aria-label="Content signal">
+      </div>
+      <div class="sig" style="--sig-c:#F0B98C">
+        <label for="s-ai">AI-likeliness <i>weight 0.25</i></label><span class="val" id="v-ai">31</span>
+        <input id="s-ai" type="range" min="0" max="100" value="31" aria-label="AI-likeliness signal">
+      </div>
+      <div class="sig" style="--sig-c:#B49BF5">
+        <label for="s-audio">Audio <i>weight 0.20</i></label><span class="val" id="v-audio">18</span>
+        <input id="s-audio" type="range" min="0" max="100" value="18" aria-label="Audio signal">
+      </div>
+      <div class="sig" style="--sig-c:#6FD8C4">
+        <label for="s-video">Video <i>weight 0.25</i></label><span class="val" id="v-video">42</span>
+        <input id="s-video" type="range" min="0" max="100" value="42" aria-label="Video signal">
+      </div>
+    </div>
+  </div>
+  <div class="gauge">
+    <div class="gauge-score">
+      <span class="gauge-num" id="score">31</span>
+      <span class="gauge-of">/ 100</span>
+      <span class="band-pill" id="band">Review</span>
+    </div>
+    <div class="meter">
+      <div class="meter-bands" aria-hidden="true">
+        <i style="width:30%;background:#5FD08A"></i><i style="width:30%;background:#EFC15E"></i>
+        <i style="width:25%;background:#F0A05C"></i><i style="width:15%;background:#EE7F7F"></i>
+      </div>
+      <div class="meter-fill" id="fill"></div>
+    </div>
+    <div class="meter-scale"><span>0 Clear</span><span>30 Review</span><span>60 Elevated</span><span>85 Critical</span></div>
+    <div class="episodes" id="episodes"></div>
+    <p class="gauge-note">Illustrative model — production weights and calibration are proprietary.</p>
+  </div>
+</div>`;
+
+function demoHTML(c){
+  const src = CONFIG.videos[c.id];
+  if(!src) return "";
+  const player = /^https?:\/\//.test(src)
+    ? `<iframe src="${src}" title="${c.title} demo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`
+    : `<video src="${src}" controls playsinline preload="metadata"></video>`;
+  return `<div class="demo"><div class="demo-frame">${player}</div><p class="demo-cap">Demo — ${c.title}</p></div>`;
+}
+
+$("#cases").innerHTML = CASES.map((c,i) => `
+  <article class="case${c.feature?" feature":""} reveal" style="--i:${Math.min(i,4)}" data-spot>
+    <div class="case-top">
+      <div>
+        <div class="case-kick"><span class="org">${c.org}</span><span class="dot"></span><span>${c.year}</span><span class="dot"></span><span>${c.kind}</span></div>
+        <h3 class="case-title">${c.title}</h3>
+        <p class="case-lede">${c.lede}</p>
+      </div>
+      ${c.badge ? `<span class="case-badge">${c.badge}</span>` : ""}
+    </div>
+    <div class="case-grid">
+      <div class="cg"><h4>Problem</h4><p>${c.problem}</p></div>
+      <div class="cg"><h4>Approach</h4><p>${c.approach}</p></div>
+      <div class="cg win"><h4>Result</h4><p>${c.result}</p></div>
+    </div>
+    <div class="flow">${c.flow.map((s,j)=>{
+      const hot = (c.hot||[]).includes(j) ? " hot" : "";
+      const arr = j < c.flow.length-1 ? '<span class="flow-arr" aria-hidden="true"></span>' : "";
+      return `<span class="flow-step${hot}">${s}</span>${arr}`;
+    }).join("")}</div>
+    ${c.fusion ? FUSION_HTML : ""}
+    ${demoHTML(c)}
+    <div class="case-foot">
+      <div class="chips">${c.tech.map(t=>`<span class="chip">${t}</span>`).join("")}</div>
+      ${c.link ? `<a class="btn btn-sm" href="${c.link}" target="_blank" rel="noopener">Source <span class="arr" aria-hidden="true">↗</span></a>` : ""}
+    </div>
+  </article>`).join("");
+
+/* ---------- stack / posts / links ---------- */
+$("#stackGrid").innerHTML = STACK.map(g => `
+  <div class="stack-col">
+    <h3>${g.h}<span>${g.items.length}</span></h3>
+    <div class="chips">${g.items.map(t=>`<span class="chip">${t}</span>`).join("")}</div>
+  </div>`).join("");
+
+$("#posts").innerHTML = POSTS.map((p,i) => `
+  <button class="post" data-post="${i}" style="--i:${i}">
+    <span class="post-meta"><span class="tag">${p.tag}</span>·<span>${p.date}</span>·<span>${p.read}</span></span>
+    <h3>${p.title}</h3>
+    <p>${p.dek}</p>
+    <span class="more">Read <span class="arr" aria-hidden="true">→</span></span>
+  </button>`).join("");
+
+$("#links").innerHTML = LINKS.map(l => {
+  const inner = `<span class="k">${l.k}</span><span class="v">${l.v}</span><span class="go">${l.go}</span>`;
+  return l.href
+    ? `<a class="link-row" href="${l.href}"${/^https/.test(l.href)?' target="_blank" rel="noopener"':""}>${inner}</a>`
+    : `<div class="link-row">${inner}</div>`;
+}).join("");
+
+/* ---------- photo ---------- */
+(function(){
+  const img = $("#photo"), fb = $("#photoFallback");
+  img.onload  = () => { img.hidden = false; fb.style.display = "none"; };
+  img.onerror = () => { img.remove(); };
+  img.src = CONFIG.photo;
+})();
+
+/* ---------------------------------------------------------------
+   INTERACTION
+   --------------------------------------------------------------- */
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const nav = $("#nav"), menuBtn = $("#menuBtn"), progress = $("#progress");
+
+let lenis = null;
+if(window.Lenis && !reduced){
+  lenis = new Lenis({ duration:1.05, smoothWheel:true, touchMultiplier:1.6 });
+  const raf = t => { lenis.raf(t); requestAnimationFrame(raf); };
+  requestAnimationFrame(raf);
+}
+function goTo(target){
+  const el = typeof target === "string" ? document.querySelector(target) : target;
+  if(!el) return;
+  if(lenis) lenis.scrollTo(el, { offset:-72 });
+  else el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block:"start" });
+}
+document.addEventListener("click", e => {
+  const a = e.target.closest('a[href^="#"]');
+  if(!a) return;
+  const id = a.getAttribute("href");
+  if(id.length < 2) return;
+  e.preventDefault();
+  nav.classList.remove("open");
+  menuBtn.setAttribute("aria-expanded","false");
+  goTo(id);
+});
+
+menuBtn.addEventListener("click", () => {
+  const open = nav.classList.toggle("open");
+  menuBtn.setAttribute("aria-expanded", String(open));
+});
+
+const spy = ["#top","#work","#systems","#stack","#writing","#about","#contact"];
+let ticking = false;
+function onScroll(){
+  const y = window.scrollY;
+  nav.classList.toggle("stuck", y > 20);
+  const max = document.documentElement.scrollHeight - innerHeight;
+  progress.style.width = (max > 0 ? (y/max)*100 : 0) + "%";
+  let current = spy[0];
+  for(const id of spy){
+    const el = document.querySelector(id);
+    if(el && el.getBoundingClientRect().top <= innerHeight*0.34) current = id;
+  }
+  $$("#navLinks a").forEach(a => a.classList.toggle("active", a.getAttribute("href") === current));
+  ticking = false;
+}
+addEventListener("scroll", () => { if(!ticking){ ticking = true; requestAnimationFrame(onScroll); } }, { passive:true });
+onScroll();
+
+const io = new IntersectionObserver(es => {
+  es.forEach(en => { if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); } });
+}, { rootMargin:"0px 0px -8% 0px", threshold:0.04 });
+$$(".reveal").forEach(el => io.observe(el));
+
+/* role accordion */
+$("#roles").addEventListener("click", e => {
+  const head = e.target.closest(".role-head");
+  if(!head) return;
+  const role = head.closest(".role");
+  const open = role.classList.toggle("open");
+  head.setAttribute("aria-expanded", String(open));
+});
+
+/* timeline bar → open + scroll to that role */
+$("#timeline").addEventListener("click", e => {
+  const row = e.target.closest("[data-role]");
+  if(!row) return;
+  const role = $("#role-" + row.dataset.role);
+  if(!role) return;
+  role.classList.add("open");
+  role.querySelector(".role-head").setAttribute("aria-expanded","true");
+  goTo(role);
+});
+
+/* pointer spotlight */
+if(matchMedia("(pointer:fine)").matches){
+  $$("[data-spot]").forEach(card => {
+    card.addEventListener("pointermove", e => {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty("--mx",(e.clientX-r.left)+"px");
+      card.style.setProperty("--my",(e.clientY-r.top)+"px");
+    });
+  });
+}
+
+/* fusion */
+(function(){
+  const W = { content:.30, ai:.25, audio:.20, video:.25 };
+  const C = { content:"#7AB8FF", ai:"#F0B98C", audio:"#B49BF5", video:"#6FD8C4" };
+  const L = { content:"Content anomaly", ai:"AI-likeliness spike", audio:"Audio irregularity", video:"Gaze / face episode" };
+  const BANDS = [{to:30,n:"Clear",c:"#5FD08A"},{to:60,n:"Review",c:"#EFC15E"},{to:85,n:"Elevated",c:"#F0A05C"},{to:101,n:"Critical",c:"#EE7F7F"}];
+
+  const inputs = {};
+  ["content","ai","audio","video"].forEach(k => inputs[k] = $("#s-"+k));
+  if(!inputs.content) return;
+  const scoreEl = $("#score"), bandEl = $("#band"), fillEl = $("#fill"), epEl = $("#episodes");
+
+  function render(){
+    const s = {};
+    for(const k in inputs) s[k] = +inputs[k].value;
+
+    let base = 0;
+    for(const k in W) base += W[k] * s[k];
+    const peak  = Math.max(...Object.values(s));
+    const boost = peak > 70 ? Math.pow((peak-70)/30, 1.5) * 18 : 0;
+    const score = Math.max(0, Math.min(100, Math.round(base + boost)));
+    const band  = BANDS.find(b => score < b.to);
+
+    for(const k in inputs){
+      $("#v-"+k).textContent = inputs[k].value;
+      inputs[k].style.setProperty("--p", inputs[k].value + "%");
+    }
+    scoreEl.textContent = score;
+    scoreEl.style.color = band.c;
+    bandEl.textContent  = band.n;
+    bandEl.style.color  = band.c;
+    fillEl.style.width  = score + "%";
+    fillEl.style.color  = band.c;
+
+    const flagged = Object.keys(s).filter(k => s[k] >= 55).sort((a,b) => s[b]-s[a]);
+    epEl.innerHTML = flagged.length
+      ? flagged.map((k,i)=>`<div class="ep"><b style="background:${C[k]}"></b>${L[k]}<span class="t">${String(4+i*7).padStart(2,"0")}:${String((i*23)%60).padStart(2,"0")}</span></div>`).join("")
+      : `<div class="ep"><b style="background:#5FD08A"></b>No episodes flagged<span class="t">all clear</span></div>`;
+  }
+  Object.values(inputs).forEach(el => el.addEventListener("input", render));
+  render();
+})();
+
+/* reader */
+(function(){
+  const reader = $("#reader"), body = $("#readerBody"), title = $("#readerTitle"), meta = $("#readerMeta");
+  let lastFocus = null;
+  function open(i){
+    const p = POSTS[i];
+    meta.innerHTML = `<span class="tag">${p.tag}</span>·<span>${p.date}</span>·<span>${p.read}</span>`;
+    title.textContent = p.title;
+    body.innerHTML = p.body;
+    reader.hidden = false;
+    requestAnimationFrame(() => reader.classList.add("on"));
+    if(lenis) lenis.stop();
+    lastFocus = document.activeElement;
+    $(".reader-close").focus();
+  }
+  function close(){
+    reader.classList.remove("on");
+    if(lenis) lenis.start();
+    setTimeout(() => { reader.hidden = true; body.innerHTML = ""; }, 620);
+    if(lastFocus) lastFocus.focus();
+  }
+  $("#posts").addEventListener("click", e => {
+    const b = e.target.closest("[data-post]");
+    if(b) open(+b.dataset.post);
+  });
+  reader.addEventListener("click", e => { if(e.target.closest("[data-close]")) close(); });
+  addEventListener("keydown", e => { if(e.key === "Escape" && !reader.hidden) close(); });
+})();
+
+/* copy + toast */
+const toast = $("#toast");
+let toastTimer;
+function say(msg){
+  toast.textContent = msg;
+  toast.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("on"), 2600);
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-copy]");
+  if(!b) return;
+  try{ await navigator.clipboard.writeText(b.dataset.copy); say("Copied — " + b.dataset.copy); }
+  catch{ say("Copy blocked — " + b.dataset.copy); }
+});
+
+$("#resumeBtn").addEventListener("click", async e => {
+  try{ const r = await fetch(CONFIG.resume, { method:"HEAD" }); if(r.ok) return; }catch{}
+  e.preventDefault();
+  say("Résumé not uploaded yet — email kgenga2002@gmail.com");
+});
+
+/* hero ribbons — four signals converging into one */
+(function(){
+  const cv = $("#signal");
+  if(!cv) return;
+  const ctx = cv.getContext("2d");
+  const TRACES = [
+    { c:"#7AB8FF", amp:20, f:0.0110, sp:0.42, y:0.40 },
+    { c:"#F0B98C", amp:15, f:0.0165, sp:0.58, y:0.55 },
+    { c:"#B49BF5", amp:24, f:0.0082, sp:0.34, y:0.70 },
+    { c:"#6FD8C4", amp:17, f:0.0205, sp:0.50, y:0.84 }
+  ];
+  let w=0, h=0, raf=null;
+
+  function size(){
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const r = cv.getBoundingClientRect();
+    w = r.width; h = r.height;
+    cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  function wave(x,t,tr){
+    return Math.sin(x*tr.f + t)*0.62 + Math.sin(x*tr.f*2.3 + t*1.7)*0.25 + Math.sin(x*tr.f*4.1 + t*0.6)*0.13;
+  }
+  function draw(time){
+    ctx.clearRect(0,0,w,h);
+    const t = time*0.001;
+    const mergeY = h*0.62, cx = w*0.62;
+    ctx.lineCap = "round";
+    TRACES.forEach((tr,i) => {
+      ctx.beginPath();
+      ctx.strokeStyle = tr.c;
+      ctx.lineWidth = 2.4;
+      ctx.globalAlpha = 0.22;
+      for(let x = 0; x <= w; x += 5){
+        const k = x < cx ? 0 : Math.min(1,(x-cx)/(w-cx||1));
+        const e = k*k*(3-2*k);
+        const baseY = h*tr.y + (mergeY - h*tr.y)*e;
+        const amp = tr.amp*(1 - e*0.94);
+        const y = baseY + wave(x, t*tr.sp + i, tr)*amp;
+        x === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 0.34;
+    ctx.strokeStyle = "#7AB8FF";
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ctx.moveTo(w*0.93, mergeY);
+    ctx.lineTo(w, mergeY);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  function loop(time){ draw(time); raf = requestAnimationFrame(loop); }
+
+  size();
+  if(reduced) draw(0);
+  else{
+    raf = requestAnimationFrame(loop);
+    document.addEventListener("visibilitychange", () => {
+      if(document.hidden){ cancelAnimationFrame(raf); raf = null; }
+      else if(!raf){ raf = requestAnimationFrame(loop); }
+    });
+  }
+  addEventListener("resize", () => { size(); if(reduced) draw(0); }, { passive:true });
+})();
+</script>
+
+</body><!--WRAP-->
+</html><!--WRAP-->
