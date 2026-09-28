@@ -176,6 +176,28 @@ const DEFAULTS = {
       flow:["X-ray","CNN","News feed","NLP filter","Dashboard"], hot:[1,3],
       tech:["CNN","NLP","MERN","Deep learning","Python"],
       link:"https://github.com/Genga28/Disease_Outbreak_Portal-Covid-19-"
+    },
+    {
+      id:"rpa", c:COLORS.amber, org:"Demo build", year:"2026", kind:"Desktop RPA",
+      title:"Screen-driven desktop automation",
+      lede:"A bot that reads the screen, moves the real cursor, and lands a scanned invoice in Excel.",
+      problem:"Legacy desktop software has no API. Anything that automates it has to work from pixels.",
+      approach:"Colour-anchor targeting finds the control on screen at any zoom or DPI, PyAutoGUI drives the real cursor, OCR reads the downloaded document, openpyxl writes the workbook.",
+      result:"End to end with no DOM access and no RPA vendor licence.",
+      flow:["Portal","Locate control","Click","Download","OCR","Excel"], hot:[1,4],
+      tech:["PyAutoGUI","OpenCV","Tesseract","openpyxl","Pillow","Python"],
+      link:"https://github.com/Genga28/Genga28.github.io/tree/main/demos/01_rpa_desktop"
+    },
+    {
+      id:"webauto", c:COLORS.teal, org:"Demo build", year:"2026", kind:"Web automation",
+      title:"Browser-driven reference table",
+      lede:"Selenium types into a real search box, reads the structured data out, and tabulates it.",
+      problem:"The obvious target is a search engine, which CAPTCHAs within a few queries and takes the run down with it.",
+      approach:"Drive a permissively licensed source for structure, enrich each row from a public API, write a filtered Excel workbook with frozen panes.",
+      result:"A repeatable collector that survives being run twice, which the obvious version does not.",
+      flow:["Search","Article","Infobox","openFDA","Excel"], hot:[2,3],
+      tech:["Selenium","requests","openpyxl","Python"],
+      link:"https://github.com/Genga28/Genga28.github.io/tree/main/demos/02_web_automation"
     }
   ],
 
@@ -188,7 +210,8 @@ const DEFAULTS = {
     { h:"Languages & foundations", c:COLORS.pink, items:["Python","R","Java","C++","JavaScript","React","DSA","Operating systems","DBMS","Selenium","PyAutoGUI","RPA"] }
   ],
 
-  videos:{ proctoring:"", rag:"", voice:"", ocr:"", shelf:"", profiling:"", specialisation:"", outbreak:"" },
+  videos:{ proctoring:"", rag:"", voice:"", ocr:"", shelf:"", profiling:"",
+           specialisation:"", outbreak:"", rpa:"", webauto:"" },
 
   posts:[
     {
@@ -437,6 +460,13 @@ function demoHTML(c){
   return `<div class="demo"><div class="demo-frame">${player}</div><p class="demo-cap">Demo: ${c.title}</p></div>`;
 }
 
+function hasDemo(c){ return Boolean((SITE.videos || {})[c.id]); }
+
+function demoButton(c){
+  if(!hasDemo(c)) return "";
+  return `<button class="btn btn-sm demo-btn" data-demo="${c.id}"><span class="play" aria-hidden="true"></span>Watch demo</button>`;
+}
+
 function renderCases(){
   $("#cases").innerHTML = SITE.cases.map((c,i) => `
     <article class="case${c.feature?" feature":""} reveal" id="case-${c.id}" style="--c:${c.c};--i:${Math.min(i,4)}" data-spot>
@@ -460,10 +490,12 @@ function renderCases(){
         return `<span class="flow-step${hot}">${s}</span>${arr}`;
       }).join("")}</div>
       ${c.fusion ? FUSION_HTML : ""}
-      ${demoHTML(c)}
       <div class="case-foot">
         <div class="chips">${c.tech.map(t => `<span class="chip">${t}</span>`).join("")}</div>
-        ${c.link ? `<a class="btn btn-sm" href="${c.link}" target="_blank" rel="noopener">Source <span class="arr" aria-hidden="true">↗</span></a>` : ""}
+        <div class="case-actions">
+          ${demoButton(c)}
+          ${c.link ? `<a class="btn btn-sm" href="${c.link}" target="_blank" rel="noopener">Source <span class="arr" aria-hidden="true">↗</span></a>` : ""}
+        </div>
       </div>
     </article>`).join("");
 }
@@ -603,6 +635,11 @@ function bindDynamic(){
     if(b) openPost(+b.dataset.post);
   };
 
+  $("#cases").addEventListener("click", e => {
+    const b = e.target.closest("[data-demo]");
+    if(b) openDemo(b.dataset.demo);
+  });
+
   if(matchMedia("(pointer:fine)").matches){
     $$("[data-spot]").forEach(card => {
       card.addEventListener("pointermove", ev => {
@@ -684,6 +721,39 @@ function closePost(){
 }
 $("#reader").addEventListener("click", e => { if(e.target.closest("[data-close]")) closePost(); });
 addEventListener("keydown", e => { if(e.key === "Escape" && !$("#reader").hidden) closePost(); });
+
+/* ---------------- demo player ---------------- */
+function openDemo(id){
+  const c = SITE.cases.find(x => x.id === id);
+  const src = (SITE.videos || {})[id];
+  if(!c || !src) return;
+
+  const modal = $("#demo");
+  modal.style.setProperty("--c", c.c);
+  $("#demoTitle").textContent = c.title;
+  $("#demoKick").textContent = `${c.org} · ${c.kind}`;
+  $("#demoStage").innerHTML = /^https?:\/\//.test(src)
+    ? `<iframe src="${src}${src.includes("?") ? "&" : "?"}autoplay=1" title="${c.title} demo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
+    : `<video src="${src}" controls autoplay playsinline></video>`;
+
+  modal.hidden = false;
+  requestAnimationFrame(() => modal.classList.add("on"));
+  if(lenis) lenis.stop();
+  $(".demo-close").focus();
+}
+
+function closeDemo(){
+  const modal = $("#demo");
+  if(!modal || modal.hidden) return;
+  modal.classList.remove("on");
+  if(lenis) lenis.start();
+  // Clearing the stage stops playback; do it after the transition so the
+  // panel does not visibly empty itself on the way out.
+  setTimeout(() => { modal.hidden = true; $("#demoStage").innerHTML = ""; }, 480);
+}
+
+$("#demo").addEventListener("click", e => { if(e.target.closest("[data-close]")) closeDemo(); });
+addEventListener("keydown", e => { if(e.key === "Escape") closeDemo(); });
 
 /* ---------------- toast + copy ---------------- */
 const toast = $("#toast");

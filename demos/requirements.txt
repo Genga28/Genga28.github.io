@@ -1,28 +1,32 @@
-# Demo 1 - desktop RPA
-pyautogui==0.9.54
-pillow==10.4.0
-pytesseract==0.3.13
-openpyxl==3.1.5
+# Everything for all demos. Per-demo subsets live in each folder.
+# Install:  py -3.10 -m venv .venv && .\.venv\Scripts\Activate.ps1
+#           pip install -r requirements.txt
 
-# Demo 2 - web automation
-selenium==4.25.0
+# --- shared -------------------------------------------------------------
+numpy<2                      # mediapipe 0.10.x and faster-whisper both want <2
+openpyxl==3.1.5
 requests==2.32.3
 
-# Demo 3 - voice agent
-SpeechRecognition==3.10.4
-pyttsx3==2.98
-PyAudio==0.2.14
-anthropic>=0.40.0          # optional: only used with --brain claude
+# --- 01 desktop RPA -----------------------------------------------------
+pyautogui==0.9.54
+pillow==10.4.0
+pytesseract==0.3.13          # needs the Tesseract binary; optional, has a fallback
 
-# Demo 4 - proctoring
+# --- 02 web automation --------------------------------------------------
+selenium==4.25.0             # 4.6+ resolves chromedriver itself
+
+# --- 03 voice agent -----------------------------------------------------
+aiortc==1.9.0                # our own WebRTC peer, no SFU vendor
+av==12.3.0
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+webrtcvad-wheels==2.0.14     # prebuilt; plain `webrtcvad` needs a C compiler on Windows
+faster-whisper==1.0.3        # local STT
+piper-tts>=1.3.0             # local TTS; 1.3 is where voice.synthesize() yields chunks
+onnxruntime==1.19.2
+pyttsx3==2.98                # TTS fallback when no Piper voice is downloaded
+anthropic>=0.40.0            # optional brain
+
+# --- 04 proctoring ------------------------------------------------------
 mediapipe==0.10.14
 opencv-python==4.10.0.84
-numpy<2.0                  # mediapipe 0.10.x is not built against numpy 2
-
-# Shared
-sounddevice==0.5.0         # optional: mic level for the proctoring audio channel
-
-# Note on Lackey (the Sikuli port on the resume): it pins old Pillow and
-# has not been released since 2019, so it does not install cleanly on
-# Python 3.10. Demo 1 implements the same screen-targeting idea directly
-# with PyAutoGUI + OpenCV template matching. See 01_rpa_desktop/README.md.

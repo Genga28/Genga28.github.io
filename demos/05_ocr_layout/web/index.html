@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCR layout studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#080B11; --bg-2:#0D121B; --surface:#141B27; --surface-2:#1B2431; --line:#232D3C;
+  --txt:#EEF3FA; --txt-2:#98A6B9; --txt-3:#66738699;
+  --blue:#7AB8FF; --violet:#B49BF5; --teal:#5FD9C4; --amber:#F5BE8B; --pink:#F49BB8; --red:#EE7F7F;
+  --ease:cubic-bezier(.16,1,.3,1);
+  --fd:"Archivo",system-ui,sans-serif; --fb:"IBM Plex Sans",system-ui,sans-serif; --fm:"IBM Plex Mono",monospace;
+}
+*,*::before,*::after{ box-sizing:border-box; }
+body{ margin:0; background:var(--bg); color:var(--txt); font-family:var(--fb); font-size:15.5px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+h1,h2,h3{ font-family:var(--fd); letter-spacing:-.03em; margin:0; }
+button{ font:inherit; color:inherit; background:none; border:0; cursor:pointer; }
+:focus-visible{ outline:2px solid var(--blue); outline-offset:2px; border-radius:4px; }
+
+.glow{ position:fixed; inset:-30% -10% auto; height:70vh; z-index:0; pointer-events:none; filter:blur(100px); opacity:.42;
+  background:radial-gradient(45% 60% at 22% 40%,#2F6CBF,transparent 70%),radial-gradient(40% 55% at 76% 30%,#6B4FB0,transparent 70%); }
+
+header{ position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:26px 34px; flex-wrap:wrap; }
+.title{ display:flex; align-items:center; gap:14px; }
+.mark{ width:38px; height:38px; border-radius:12px; background:linear-gradient(140deg,var(--blue),var(--violet) 55%,var(--pink)); box-shadow:0 0 30px -8px var(--violet); animation:spin 9s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+.title h1{ font-size:22px; font-weight:800; line-height:1.15; }
+.title p{ margin:0; font-size:13.5px; color:var(--txt-2); }
+.tools{ display:flex; gap:10px; flex-wrap:wrap; }
+.btn{ padding:11px 20px; border-radius:100px; border:1px solid var(--line); background:var(--surface); font-size:14.5px; font-weight:500; transition:transform .35s var(--ease), background .35s var(--ease), border-color .35s var(--ease); }
+.btn:hover{ transform:translateY(-2px); background:var(--surface-2); border-color:#31415A; }
+.btn.primary{ background:linear-gradient(135deg,var(--blue),var(--violet)); color:#08121E; border-color:transparent; font-weight:600; box-shadow:0 14px 34px -16px var(--violet); }
+.btn:disabled{ opacity:.5; cursor:wait; transform:none; }
+
+main{ position:relative; z-index:2; padding:0 34px 40px; display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+@media (max-width:1100px){ main{ grid-template-columns:1fr; } }
+
+.panel{ border:1px solid var(--line); border-radius:18px; background:var(--bg-2); overflow:hidden; }
+.panel > h3{ font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.09em; color:var(--txt-2); padding:16px 20px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:12px; align-items:center; }
+
+/* ---------- drop zone ---------- */
+.drop{ margin:0 34px 20px; border:1.5px dashed var(--line); border-radius:18px; padding:26px; display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; text-align:center; transition:border-color .35s var(--ease), background .35s var(--ease); position:relative; z-index:2; }
+.drop.over{ border-color:var(--blue); background:rgba(122,184,255,.07); }
+.drop b{ font-weight:600; }
+.drop span{ color:var(--txt-2); font-size:14px; }
+
+/* ---------- page + boxes ---------- */
+.stage{ position:relative; background:#05070B; }
+.stage img{ display:block; width:100%; }
+.stage svg{ position:absolute; inset:0; width:100%; height:100%; }
+.bx{ fill:rgba(122,184,255,.07); stroke:var(--blue); stroke-width:1.1; opacity:0; transform-box:fill-box; transform-origin:center;
+     animation:pop .5s var(--ease) forwards; }
+.bx.low{ stroke:var(--amber); fill:rgba(245,190,139,.10); }
+.bx.bad{ stroke:var(--red); fill:rgba(238,127,127,.12); }
+@keyframes pop{ from{ opacity:0; transform:scale(.72); } to{ opacity:1; transform:scale(1); } }
+.colband{ fill:rgba(180,155,245,.10); stroke:var(--violet); stroke-width:1; stroke-dasharray:5 5; opacity:0; animation:fadein .7s var(--ease) .1s forwards; }
+@keyframes fadein{ to{ opacity:1; } }
+
+.scanner{ position:absolute; left:0; right:0; height:120px; pointer-events:none; opacity:0;
+  background:linear-gradient(180deg,transparent,rgba(122,184,255,.20) 46%,rgba(122,184,255,.65) 50%,rgba(122,184,255,.20) 54%,transparent); }
+.stage.busy .scanner{ opacity:1; animation:sweep 1.25s var(--ease) infinite; }
+@keyframes sweep{ 0%{ top:-14%; } 100%{ top:100%; } }
+
+.empty{ padding:64px 24px; text-align:center; color:var(--txt-3); }
+.empty div{ font-size:44px; margin-bottom:10px; opacity:.45; }
+
+/* ---------- stats ---------- */
+.stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:1px; background:var(--line); border-bottom:1px solid var(--line); }
+.stat{ background:var(--bg-2); padding:15px 16px; }
+.stat b{ display:block; font-family:var(--fd); font-weight:800; font-size:25px; letter-spacing:-.035em; font-variant-numeric:tabular-nums; line-height:1.15; }
+.stat span{ font-size:12px; color:var(--txt-2); }
+.stat:nth-child(1) b{ color:var(--blue); } .stat:nth-child(2) b{ color:var(--teal); }
+.stat:nth-child(3) b{ color:var(--violet); } .stat:nth-child(4) b{ color:var(--amber); }
+.stat:nth-child(5) b{ color:var(--pink); }
+
+.verdict{ padding:14px 20px; font-size:14px; color:var(--txt-2); border-bottom:1px solid var(--line); background:rgba(180,155,245,.06); }
+.verdict b{ color:var(--violet); }
+
+/* ---------- tabs ---------- */
+.tabs{ display:flex; gap:4px; padding:12px 16px 0; border-bottom:1px solid var(--line); }
+.tabs button{ padding:10px 16px; font-size:14px; color:var(--txt-2); border-bottom:2px solid transparent; transition:color .3s, border-color .3s; }
+.tabs button.on{ color:var(--blue); border-bottom-color:var(--blue); }
+pre{ margin:0; padding:20px; font-family:var(--fm); font-size:12.5px; line-height:1.52; color:#D6E2F2;
+     white-space:pre; overflow:auto; max-height:min(64vh,720px); tab-size:4; }
+pre.flat{ color:#B9C6D6; }
+pre .ln{ display:block; opacity:0; animation:slidein .32s var(--ease) forwards; }
+@keyframes slidein{ from{ opacity:0; transform:translateX(-7px); } to{ opacity:1; transform:none; } }
+
+.legend{ display:flex; gap:16px; flex-wrap:wrap; padding:12px 20px; border-top:1px solid var(--line); font-size:12.5px; color:var(--txt-2); }
+.legend i{ display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+
+footer{ position:relative; z-index:2; padding:0 34px 40px; color:var(--txt-3); font-size:13px; }
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+  .bx,.colband,pre .ln{ opacity:1 !important; }
+}
+</style>
+</head>
+<body>
+<div class="glow" aria-hidden="true"></div>
+
+<header>
+  <div class="title">
+    <span class="mark" aria-hidden="true"></span>
+    <div>
+      <h1>OCR layout studio</h1>
+      <p>Keep the geometry, or lose the meaning</p>
+    </div>
+  </div>
+  <div class="tools">
+    <button class="btn" id="sampleBtn">Generate a hard page</button>
+    <button class="btn primary" id="pickBtn">Upload a document</button>
+    <input type="file" id="file" accept="image/*" hidden>
+  </div>
+</header>
+
+<div class="drop" id="drop">
+  <b>Drop an image here</b>
+  <span>or press <em>Generate a hard page</em> for a two-column invoice that breaks reading-order OCR</span>
+</div>
+
+<main>
+  <section class="panel">
+    <h3>Page <span id="engineTag">no engine loaded</span></h3>
+    <div class="stage" id="stage">
+      <div class="empty" id="stageEmpty"><div>▦</div>Nothing loaded yet</div>
+      <img id="page" alt="" hidden>
+      <svg id="overlay" hidden></svg>
+      <div class="scanner" aria-hidden="true"></div>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--blue)"></i>confident</span>
+      <span><i style="background:var(--amber)"></i>below 0.80</span>
+      <span><i style="background:var(--red)"></i>below 0.60</span>
+      <span><i style="background:var(--violet)"></i>column band</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="stats" id="stats">
+      <div class="stat"><b>—</b><span>boxes</span></div>
+      <div class="stat"><b>—</b><span>lines</span></div>
+      <div class="stat"><b>—</b><span>columns</span></div>
+      <div class="stat"><b>—</b><span>mean conf</span></div>
+      <div class="stat"><b>—</b><span>ms</span></div>
+    </div>
+    <div class="verdict" id="verdict">Load a page to compare the two reconstructions.</div>
+    <div class="tabs">
+      <button class="on" data-tab="preserved">Layout preserved</button>
+      <button data-tab="flattened">Flattened</button>
+      <button data-tab="export" id="exportBtn">Export .txt</button>
+    </div>
+    <pre id="out">Drop a scanned invoice, a lab report or a bank statement in.
+
+The left pane shows what the detector found. This pane shows two
+reconstructions of the same boxes:
+
+  Layout preserved   boxes quantised onto a character grid derived
+                     from the page's own median glyph advance, so
+                     columns stay columns and tables stay tables
+
+  Flattened          the same boxes joined in reading order, which
+                     is what you get from a default OCR call
+
+On a single-column page they agree. On anything with two columns
+they do not, and the flattened one is quietly wrong.</pre>
+  </section>
+</main>
+
+<footer>Runs locally. PaddleOCR when it is installed, Tesseract otherwise. Nothing is uploaded anywhere.</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const els = {
+  file:$("#file"), pick:$("#pickBtn"), sample:$("#sampleBtn"), drop:$("#drop"),
+  stage:$("#stage"), page:$("#page"), svg:$("#overlay"), empty:$("#stageEmpty"),
+  stats:$("#stats"), out:$("#out"), verdict:$("#verdict"), tabs:document.querySelectorAll(".tabs button[data-tab]"),
+  engine:$("#engineTag"), export:$("#exportBtn"),
+};
+let data = null, tab = "preserved";
+
+const NS = "http://www.w3.org/2000/svg";
+const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+
+function countUp(node, target, suffix = "") {
+  const dur = 620, t0 = performance.now();
+  const num = typeof target === "number";
+  if (!num) { node.textContent = target; return; }
+  (function step(t) {
+    const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    node.textContent = (target % 1 ? (target * e).toFixed(2) : Math.round(target * e)) + suffix;
+    if (k < 1) requestAnimationFrame(step);
+  })(t0);
+}
+
+function drawBoxes(d) {
+  const svg = els.svg;
+  svg.innerHTML = "";
+  svg.setAttribute("viewBox", `0 0 ${d.width} ${d.height}`);
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.hidden = false;
+
+  (d.analysis.column_bands || []).forEach(([x0, x1]) => {
+    svg.appendChild(el("rect", { class:"colband", x:x0, y:0, width:Math.max(x1-x0,1), height:d.height, rx:4 }));
+  });
+
+  // Stagger the reveal in reading order so you can watch the detector sweep
+  // the page rather than having 400 rectangles appear at once.
+  const sorted = [...d.boxes].sort((a,b) => (a.y0 - b.y0) || (a.x0 - b.x0));
+  const step = Math.max(2, Math.min(9, 1400 / Math.max(sorted.length, 1)));
+  sorted.forEach((b, i) => {
+    const cls = b.conf < 0.60 ? "bx bad" : b.conf < 0.80 ? "bx low" : "bx";
+    const r = el("rect", {
+      class:cls, x:b.x0, y:b.y0, width:Math.max(b.x1-b.x0,1), height:Math.max(b.y1-b.y0,1), rx:2,
+      style:`animation-delay:${(i*step).toFixed(0)}ms`,
+    });
+    r.appendChild(el("title", {})).textContent = `${b.text}  ·  ${(b.conf*100).toFixed(1)}%`;
+    svg.appendChild(r);
+  });
+}
+
+function renderText() {
+  if (!data) return;
+  const text = tab === "flattened" ? data.flattened : data.preserved;
+  els.out.className = tab === "flattened" ? "flat" : "";
+  const lines = (text || "(nothing)").split("\n");
+  els.out.innerHTML = lines
+    .map((l, i) => `<span class="ln" style="animation-delay:${Math.min(i*11, 900)}ms">${
+      l.replace(/&/g,"&amp;").replace(/</g,"&lt;") || "&nbsp;"}</span>`)
+    .join("");
+}
+
+function render(d) {
+  data = d;
+  els.empty.hidden = true;
+  els.page.src = d.url;
+  els.page.hidden = false;
+  els.engine.textContent = `${d.engine} · ${d.ms} ms`;
+
+  const a = d.analysis;
+  const cells = els.stats.querySelectorAll(".stat b");
+  countUp(cells[0], a.boxes); countUp(cells[1], a.lines); countUp(cells[2], a.columns);
+  countUp(cells[3], a.mean_conf); countUp(cells[4], d.ms);
+
+  els.verdict.innerHTML = `<b>${a.columns} column${a.columns===1?"":"s"}</b> · ${a.words} words · ` +
+    `${a.low_conf} low-confidence box${a.low_conf===1?"":"es"} · char advance ${a.char_width}px<br>${d.verdict}`;
+
+  els.page.onload = () => drawBoxes(d);
+  if (els.page.complete) drawBoxes(d);
+  renderText();
+}
+
+async function send(blob, name) {
+  els.stage.classList.add("busy");
+  els.pick.disabled = els.sample.disabled = true;
+  els.out.textContent = "Running detection and recognition…";
+  try {
+    const fd = new FormData();
+    fd.append("file", blob, name);
+    const r = await fetch("/api/ocr", { method:"POST", body:fd });
+    if (!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || r.statusText);
+    render(await r.json());
+  } catch (err) {
+    els.out.textContent = "Failed: " + err.message;
+  } finally {
+    els.stage.classList.remove("busy");
+    els.pick.disabled = els.sample.disabled = false;
+  }
+}
+
+els.pick.onclick = () => els.file.click();
+els.file.onchange = () => els.file.files[0] && send(els.file.files[0], els.file.files[0].name);
+
+els.sample.onclick = async () => {
+  els.sample.disabled = true;
+  try {
+    const r = await fetch("/api/sample");
+    const { url, name } = await r.json();
+    const blob = await (await fetch(url)).blob();
+    await send(blob, name);
+  } catch (err) {
+    els.out.textContent = "Could not build a sample: " + err.message;
+  } finally {
+    els.sample.disabled = false;
+  }
+};
+
+["dragenter","dragover"].forEach(e => els.drop.addEventListener(e, ev => { ev.preventDefault(); els.drop.classList.add("over"); }));
+["dragleave","drop"].forEach(e => els.drop.addEventListener(e, ev => { ev.preventDefault(); els.drop.classList.remove("over"); }));
+els.drop.addEventListener("drop", ev => { const f = ev.dataTransfer.files[0]; if (f) send(f, f.name); });
+
+els.tabs.forEach(b => b.onclick = () => {
+  if (b.dataset.tab === "export") {
+    if (data?.token) location.href = "/api/export/" + data.token;
+    return;
+  }
+  tab = b.dataset.tab;
+  els.tabs.forEach(x => x.classList.toggle("on", x === b));
+  renderText();
+});
+</script>
+</body>
+</html>

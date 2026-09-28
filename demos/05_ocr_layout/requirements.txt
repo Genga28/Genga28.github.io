@@ -1,0 +1,15 @@
+# Demo 5 only. PaddleOCR is a big install (~700 MB with paddlepaddle), which is
+# why it is not in the repo-wide demos/requirements.txt. The studio falls back
+# to Tesseract if Paddle is absent, so it runs either way.
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.12
+pillow==10.4.0
+numpy<2
+
+# Primary engine
+paddlepaddle==2.6.2
+paddleocr==2.8.1
+
+# Fallback engine (needs the Tesseract binary on PATH)
+pytesseract==0.3.13
