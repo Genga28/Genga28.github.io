@@ -1,4 +1,4 @@
-# Genga K — Portfolio
+# Genga K, Portfolio
 
 Static site. No build step, no npm, no framework. Open `index.html` and it runs; push the
 folder anywhere static and it's live.
@@ -30,7 +30,7 @@ git push -u origin main
 ```
 
 Git Credential Manager will pop a browser sign-in on the first push. The site goes live at
-**https://genga28.github.io** within a minute — no settings to change, because a repo named
+**https://genga28.github.io** within a minute, with no settings to change, because a repo named
 `<username>.github.io` is served from root automatically.
 
 Any other repo name works too; then Settings → Pages → Source → `main` / root, and it lands
@@ -39,27 +39,27 @@ at `genga28.github.io/<repo-name>`.
 ## The editor
 
 Open it with **`#admin`** on the URL (`genga28.github.io/#admin`), or **Ctrl+Shift+E**, or
-the small *Editor* link in the footer. Passcode is `genga` — change `ADMIN_PASS` at the top
+the small *Editor* link in the footer. Passcode is `genga`. Change `ADMIN_PASS` at the top
 of [assets/js/admin.js](assets/js/admin.js).
 
 > The passcode only hides the panel. It is client-side, so anyone can read it in the page
-> source. Treat it as a convenience latch, not security — real auth needs a backend.
+> source. Treat it as a convenience latch, not security. Real auth needs a backend.
 
-**Profile** — upload a headshot by dragging it onto the drop zone, edit your name, role,
+**Profile**: upload a headshot by dragging it onto the drop zone, edit your name, role,
 location, availability pill, the three headline lines, and the intro paragraph. Everything
 updates on the page as you type.
 
-**Writing** — add, edit, reorder and delete notes. Each takes a title, tag, date, read time,
+**Writing**: add, edit, reorder and delete notes. Each takes a title, tag, date, read time,
 a one-sentence summary, an optional cover image, and an HTML body. Useful tags inside the
 body: `<h3>`, `<p class="pull">` for a pull quote, `<code>`, `<ul><li>`, `<img src="…">`.
 
-**Demo videos** — one field per system. A path like `assets/video/proctor.mp4`, or a YouTube
+**Demo videos**: one field per system. A path like `assets/video/proctor.mp4`, or a YouTube
 **embed** URL (`youtube.com/embed/ID`, not `/watch?v=`). Blank means no player and the card
 stays complete. Keep local clips under ~30 MB; GitHub Pages rejects files over 100 MB.
 
 ### How publishing works
 
-There's no server, so edits save to **localStorage** — only you, in that browser, see them.
+There's no server, so edits save to **localStorage**, so only you, in that browser, see them.
 An amber bar appears while a local draft is active. To make edits public:
 
 1. Editor → **Publish** tab → **Download content.json** (or **Copy JSON**).
@@ -67,14 +67,14 @@ An amber bar appears while a local draft is active. To make edits public:
 3. `git add content.json && git commit -m "Update notes" && git push`
 
 The site loads `content.json` on every visit and layers it over the defaults in `app.js`.
-Uploaded images are embedded as data URIs, so `content.json` grows with each one — for a
+Uploaded images are embedded as data URIs, so `content.json` grows with each one. For a
 large photo, save the file to `assets/img/` and point the path field at it instead.
 
 ## Editing without the panel
 
 All content lives in the `DEFAULTS` object at the top of [assets/js/app.js](assets/js/app.js):
 `profile`, `telemetry`, `roles`, `cases`, `stack`, `videos`, `posts`, `links`. Roles and case
-studies are only editable here, not in the panel — they're structural.
+studies are only editable here, not in the panel, because they're structural.
 
 Each role and case carries a `c:` colour from the `COLORS` map at the top of the file; that
 colour drives its timeline bar, accent stripe, chips and hover glow.
@@ -89,11 +89,11 @@ LinkedIn has already scraped the URL, clear its cache with the
 ## Notes on the build
 
 - **Smooth scrolling** is Lenis from jsDelivr. If that request is blocked the page falls back
-  to native scrolling — nothing breaks.
+  to native scrolling, nothing breaks.
 - **Type** is Archivo for display, IBM Plex Sans for everything else. No monospace anywhere
   except inline `<code>`.
-- **Colour** — seven accents, one per section, carried through the side rail, eyebrows,
-  timeline bars and case-study stripes. Semantic green→red is reserved for the risk bands in
+- **Colour**: seven accents, one per section, carried through the side rail, eyebrows,
+  timeline bars and case-study stripes. Semantic green to red is reserved for the risk bands in
   the fusion widget and used nowhere else.
 - **The timeline** is a Gantt, not a single track, because Yubi and Space Marvel overlap
   Jan–Jun 2025. Positions are computed from the `start`/`end` dates on each role, so the axis

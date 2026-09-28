@@ -1,5 +1,5 @@
 /* ============================================================
-   ADMIN — edit the site from the browser
+   ADMIN: edit the site from the browser
    ------------------------------------------------------------
    Open with  #admin  in the URL, or Ctrl+Shift+E.
 
@@ -11,7 +11,7 @@
 
    The passcode below only hides the panel from casual clicking.
    It is client-side, so anyone can read it in the source. It is
-   convenience, not security — never put anything private here.
+   convenience, not security. Never put anything private here.
    ============================================================ */
 
 const ADMIN_PASS = "genga";
@@ -26,7 +26,7 @@ function showDraftBar(){
   bar.className = "draft-bar";
   bar.id = "draftBar";
   bar.innerHTML = `
-    <span><b>Local draft active.</b> Only you can see these edits — publish them with Download content.json.</span>
+    <span><b>Local draft active.</b> Only you can see these edits. Publish them with Download content.json.</span>
     <button class="btn btn-sm" data-admin-open>Open editor</button>
     <button class="btn btn-sm" data-draft-discard>Discard draft</button>`;
   document.body.appendChild(bar);
@@ -100,7 +100,7 @@ function renderAdmin(){
           <input id="adminPass" type="text" autocomplete="off" placeholder="passcode">
         </div>
         <button class="btn btn-primary" data-unlock>Unlock editor</button>
-        <p class="admin-note">This gate is client-side only — it hides the panel, it does not secure anything. Change <code>ADMIN_PASS</code> in <code>assets/js/admin.js</code>.</p>
+        <p class="admin-note">This gate is client-side only. It hides the panel, it does not secure anything. Change <code>ADMIN_PASS</code> in <code>assets/js/admin.js</code>.</p>
       </div>`;
     $("#adminPass").onkeydown = e => { if(e.key === "Enter") tryUnlock(); };
     return;
@@ -142,14 +142,14 @@ function renderProfileTab(body){
     </div>
     ${field("Availability text","f-availText",p.availableText,"Shown in the pill at the top. Clear it to hide the pill.")}
     <div class="fld">
-      <label>Headline — one line each</label>
+      <label>Headline, one line each</label>
       <input id="f-h0" type="text"><input id="f-h1" type="text" style="margin-top:8px"><input id="f-h2" type="text" style="margin-top:8px">
       <small>The last word of the last line gets the gradient treatment.</small>
     </div>
     <div class="fld">
       <label for="f-lede">Intro paragraph</label>
       <textarea id="f-lede" style="min-height:110px"></textarea>
-      <small>Basic HTML is allowed — <code>&lt;strong&gt;</code> for emphasis.</small>
+      <small>Basic HTML is allowed. Use <code>&lt;strong&gt;</code> for emphasis.</small>
     </div>
     ${field("Résumé file","f-resume",p.resume)}`;
 
@@ -280,7 +280,7 @@ function renderVideosTab(body){
   body.innerHTML = `
     <div class="fld"><label>Demo videos</label>
       <small>A path like <code>assets/video/proctor.mp4</code>, or a YouTube <b>embed</b> URL
-      (<code>youtube.com/embed/ID</code> — not the <code>/watch?v=</code> one). Leave blank for no player.</small></div>
+      (<code>youtube.com/embed/ID</code>, not the <code>/watch?v=</code> one). Leave blank for no player.</small></div>
     ${SITE.cases.map(c => `
       <div class="fld">
         <label for="vid-${c.id}">${c.title}</label>
@@ -307,7 +307,7 @@ function renderPublishTab(body){
       <li><code>git add content.json &amp;&amp; git commit -m "Update notes" &amp;&amp; git push</code></li>
     </ol>
     <div class="fld">
-      <label>Current content.json — ${kb} KB</label>
+      <label>Current content.json (${kb} KB)</label>
       <textarea readonly style="min-height:220px" id="jsonOut"></textarea>
       <small>Images you uploaded are embedded here as data URIs, which is why this can get large.</small>
     </div>
@@ -325,7 +325,7 @@ function wireDrop(el, cb){
 
   const read = file => {
     if(!file || !file.type.startsWith("image/")) return say("That file isn't an image.");
-    if(file.size > 1.5 * 1024 * 1024) return say("Too big — keep images under 1.5 MB.");
+    if(file.size > 1.5 * 1024 * 1024) return say("Too big. Keep images under 1.5 MB.");
     const fr = new FileReader();
     fr.onload = () => cb(fr.result);
     fr.onerror = () => say("Could not read that file.");
@@ -355,7 +355,7 @@ function saveDraft(){
     showDraftBar();
     say("Draft saved to this browser.");
   }catch{
-    say("Browser storage is full or blocked — use Download instead.");
+    say("Browser storage is full or blocked. Use Download instead.");
   }
 }
 
@@ -373,7 +373,7 @@ function downloadJSON(){
     a.href = url; a.download = "content.json";
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    say("content.json downloaded — commit it to publish.");
+    say("content.json downloaded. Commit it to publish.");
   }catch{
     say("Download blocked here. Use Copy JSON instead.");
   }
@@ -397,7 +397,7 @@ function initAdmin(){
     if(e.target.closest("[data-copy-json]")){
       navigator.clipboard.writeText(exportJSON())
         .then(() => say("content.json copied to clipboard."))
-        .catch(() => say("Clipboard blocked — select the text in the Publish tab."));
+        .catch(() => say("Clipboard blocked. Select the text in the Publish tab."));
       return;
     }
     const tab = e.target.closest("#adminTabs [data-tab]");

@@ -1,9 +1,9 @@
 /* ============================================================
-   GENGA K — PORTFOLIO
+   GENGA K PORTFOLIO
    Content lives in DEFAULTS below. Three layers, in order:
-     1. DEFAULTS         — this file
-     2. content.json     — published overrides (what visitors see)
-     3. localStorage     — your unsaved admin draft (only you see it)
+     1. DEFAULTS         = this file
+     2. content.json     = published overrides (what visitors see)
+     3. localStorage     = your unsaved admin draft (only you see it)
    Open the admin panel with  #admin  or  Ctrl+Shift+E
    ============================================================ */
 
@@ -27,7 +27,7 @@ const DEFAULTS = {
     available:true,
     availableText:"Open to AI / ML engineering roles",
     headline:["I build AI","systems that hold","up in production."],
-    lede:"Applied AI engineer at <strong>Jobtwine</strong>. RAG pipelines, agentic workflows, real-time voice and vision — plus the concurrency and transformer internals underneath."
+    lede:"I build RAG pipelines, agentic workflows, and real-time voice and vision systems. I own the retrieval design, the async backends, the guardrails and the evaluation that keeps them honest."
   },
 
   telemetry:[
@@ -37,25 +37,25 @@ const DEFAULTS = {
     { v:"<i>4</i>",     k:"Signals fused per score" }
   ],
 
-  /* Roles stay high-level on purpose — the detail lives in Systems,
+  /* Roles stay high-level on purpose. The detail lives in Systems,
      and each role links across rather than repeating it. */
   roles:[
     {
-      co:"Jobtwine", title:"AI Engineer", when:"Jul 2025 — Present", where:"Bengaluru",
+      co:"Jobtwine", title:"AI Engineer", when:"Jul 2025 – Present", where:"Bengaluru",
       start:[2025,7], end:null, c:COLORS.blue,
       bullets:[
-        "Own the AI stack end to end — retrieval design, async backends, guardrails and observability across proctoring, interviewing and voice.",
+        "Own the AI stack end to end: retrieval design, async backends, guardrails and observability across proctoring, interviewing and voice.",
         "Built the async FastAPI backend: a <b>10-worker SQS queue</b>, multiprocessing and polling-based concurrency holding <span class='num'>10–50</span> live sessions against <span class='num'>1000+</span> queued requests.",
-        "Shipped the LLM interview tooling — JD-to-playbook generator, semantic resume shortlister, and post-interview analytics with generated debriefs."
+        "Shipped the LLM interview tooling: a JD-to-playbook generator, a semantic resume shortlister, and post-interview analytics with generated debriefs."
       ],
       systems:["proctoring","rag","voice"],
       tech:["Python","RoBERTa","MediaPipe","OpenCV","Dlib","Wav2Lip","ASR","TTS","LangGraph","SQS","RAG","Pinecone","LangChain","FastAPI","MCP","Agentic AI","LLM-as-judge"]
     },
     {
-      co:"Space Marvel AI", title:"AI Consultant · Freelance", when:"Jan — Jul 2025", where:"Remote",
+      co:"Space Marvel AI", title:"AI Consultant · Freelance", when:"Jan – Jul 2025", where:"Remote",
       start:[2025,1], end:[2025,7], c:COLORS.violet,
       bullets:[
-        "Led a <b>three-person team</b> across three AI systems — owned architecture, set the agent orchestration pattern, ran design reviews.",
+        "Led a <b>three-person team</b> across three AI systems, owning architecture, setting the agent orchestration pattern and running design reviews.",
         "Built an outbound tele-caller bot on ASR → LLM → TTS at <span class='num'>200 calls/day</span>, with interruption handling and outcome classification.",
         "Built a voice-driven desktop agent that reads browser and window state to automate multi-step workflows via tool calling."
       ],
@@ -63,10 +63,10 @@ const DEFAULTS = {
       tech:["Python","LLM agents","VLM","OpenCV","ASR/TTS","Tool calling","FastAPI"]
     },
     {
-      co:"Yubi", title:"Data Scientist Intern", when:"Dec 2024 — Jun 2025", where:"Chennai",
+      co:"Yubi", title:"Data Scientist Intern", when:"Dec 2024 – Jun 2025", where:"Chennai",
       start:[2024,12], end:[2025,6], c:COLORS.teal,
       bullets:[
-        "Shipped OCR + LLM classification APIs into loan-application processing — <span class='num'>~5,000 docs/day</span> across <span class='num'>50,000+</span> batch runs.",
+        "Shipped OCR + LLM classification APIs into loan-application processing, running <span class='num'>~5,000 docs/day</span> across <span class='num'>50,000+</span> batch runs.",
         "Engineered validation modules detecting file tampering and verifying signature originality, flagging low-trust documents before underwriting.",
         "Devised an ASR/TTS audio bot extracting behavioural signals around loan-repayment intent."
       ],
@@ -74,17 +74,17 @@ const DEFAULTS = {
       tech:["Python","GPT-4o","llama.cpp","Fine-tuning","OCR","FastAPI","AWS SageMaker","Transformers","AWS Transcribe","Whisper"]
     },
     {
-      co:"EXL Health", title:"Data Engineer Intern · R&D", when:"Jun — Nov 2023", where:"Chennai",
+      co:"EXL Health", title:"Data Engineer Intern · R&D", when:"Jun – Nov 2023", where:"Chennai",
       start:[2023,6], end:[2023,11], c:COLORS.amber,
       bullets:[
         "Programmed RPA applications driving graphical and web interfaces, removing manual steps from repeated workflows.",
-        "Ran data wrangling on scraped data with text mining and NLP — a <span class='num'>95%</span> cut in task completion time.",
-        "Built a custom ETL tool to extract, clean and load web data — <span class='num'>60%</span> faster processing."
+        "Ran data wrangling on scraped data with text mining and NLP, cutting task completion time by <span class='num'>95%</span>.",
+        "Built a custom ETL tool to extract, clean and load web data, making processing <span class='num'>60%</span> faster."
       ],
       tech:["Python","Lackey","PyAutoGUI","Tesseract OCR","Selenium","HiveQL","RPA","NLP"]
     },
     {
-      co:"Elamigo", title:"Data Science Intern", when:"Dec 2022 — Feb 2023", where:"Bengaluru",
+      co:"Elamigo", title:"Data Science Intern", when:"Dec 2022 – Feb 2023", where:"Bengaluru",
       start:[2022,12], end:[2023,2], c:COLORS.pink,
       bullets:[
         "Scraped and structured data across <span class='num'>~40</span> industry sectors into a queryable database, then ran EDA surfacing <span class='num'>15+</span> partnership insights."
@@ -100,7 +100,7 @@ const DEFAULTS = {
       title:"Multi-signal AI proctoring engine",
       lede:"Four noisy detectors watching a live interview, fused into one number a hiring panel can defend.",
       problem:"Fire on one detector and you get false accusations. Require all four and you get silence.",
-      approach:"Weighted blend across the four signals, plus an exponential boost so one extreme reading can escalate — but never convict alone.",
+      approach:"Weighted blend across the four signals, plus an exponential boost so one extreme reading can escalate without ever convicting alone.",
       result:"A reviewable score, not a verdict. Every number traces back to timestamped episodes.",
       flow:["Live session","Content","AI-likeliness","Audio","Video","Fusion","0–100"], hot:[5,6],
       tech:["Python","RoBERTa","MediaPipe","OpenCV","Dlib","Wav2Lip","ASR","Multiprocessing"],
@@ -130,7 +130,7 @@ const DEFAULTS = {
       id:"ocr", c:COLORS.amber, org:"Yubi", year:"2024–25", kind:"Document AI",
       title:"Hybrid layout-preserving OCR",
       lede:"Rules and an LLM working the same page, rebuilding multi-column financial PDFs at pixel level.",
-      problem:"Off-the-shelf OCR flattens layout — a number lands on the wrong label, and a loan gets written on it.",
+      problem:"Off-the-shelf OCR flattens layout, so a number lands on the wrong label and a loan gets written on it.",
       approach:"Replicate pixel coordinates and spacing to preserve structure; deterministic rules where the format is known, LLM where it isn't.",
       result:"Beat PaddleOCR, Tesseract and Textract across 30+ document types at ~5,000 docs/day.",
       flow:["PDF","Layout parse","Rules","LLM fallback","Coord replay","Key-values"], hot:[2,3],
@@ -141,7 +141,7 @@ const DEFAULTS = {
       title:"Retail shelf auditing",
       lede:"Segmentation finds where the products are; a VLM reads what they are and how many.",
       problem:"Manual audits are stale on arrival, and pure detection needs retraining for every new SKU.",
-      approach:"Two stages — CV segmentation localizes clusters, then a VLM identifies SKU names and counts inside each.",
+      approach:"Two stages. CV segmentation localizes clusters, then a VLM identifies SKU names and counts inside each.",
       result:"Automated restock alerts with no per-SKU model to maintain. New products need a prompt, not a retrain.",
       flow:["Shelf image","Segmentation","Crops","VLM","Restock alert"], hot:[1,3],
       tech:["VLM","OpenCV","Python","LLM agents","FastAPI"]
@@ -152,14 +152,14 @@ const DEFAULTS = {
       lede:"A roofline and KV-concurrency model that predicted serving throughput better than parameter count.",
       problem:"Model choice was being made on benchmark scores, which say nothing about concurrent users per GPU.",
       approach:"Roofline model for decode latency plus a KV-cache concurrency model, validated with torch.profiler and vLLM under AWQ and FP8.",
-      result:"3B served 5× the throughput of a 4B at equal latency — KV footprint, not parameters, was binding.",
+      result:"3B served 5× the throughput of a 4B at equal latency, because KV footprint was binding, not parameter count.",
       flow:["Roofline","KV concurrency","vLLM","torch.profiler","AWQ / FP8","CUDA graphs"], hot:[0,1],
       tech:["vLLM","torch.profiler","Transformer internals","AWQ","FP8","CUDA graphs","PyTorch"]
     },
     {
       id:"specialisation", c:COLORS.green, org:"Independent", year:"2025", kind:"Fine-tuning + eval",
       title:"Small-model specialisation",
-      lede:"A QLoRA fine-tune is easy. Proving it improved — and gating CI on that proof — is the work.",
+      lede:"A QLoRA fine-tune is easy. Proving it improved, and gating CI on that proof, is the work.",
       problem:"Without statistical testing you can't tell an improvement from noise, let alone block a regression.",
       approach:"QLoRA with PEFT and TRL, wrapped in three eval tiers: deterministic checks, LLM-as-judge validated by Cohen's kappa, and McNemar's test for paired significance.",
       result:"A CI gate that fails on a significant regression rather than on a moved average.",
@@ -181,7 +181,7 @@ const DEFAULTS = {
 
   stack:[
     { h:"AI & LLM systems", c:COLORS.blue,   items:["RAG","Agentic AI","LangGraph","LangChain","MCP","Multi-agent","LLM-as-judge","Prompt engineering","Fine-tuning","QLoRA","PEFT","TRL","GPT-4o","llama.cpp","vLLM"] },
-    { h:"Transformer internals", c:COLORS.violet, items:["Attention & KV cache","Decode vs prefill","Roofline analysis","Quantisation — AWQ / FP8","CUDA graphs","torch.profiler","Transformers","RoBERTa","Tokenisation"] },
+    { h:"Transformer internals", c:COLORS.violet, items:["Attention & KV cache","Decode vs prefill","Roofline analysis","Quantisation (AWQ, FP8)","CUDA graphs","torch.profiler","Transformers","RoBERTa","Tokenisation"] },
     { h:"Concurrency & backends", c:COLORS.teal, items:["Async I/O","Polling & queue workers","Multiprocessing","Concurrency design","AWS SQS","FastAPI","Flask","Django","Docker","Kubernetes"] },
     { h:"Speech & vision", c:COLORS.cyan,   items:["ASR","TTS","Whisper","AWS Transcribe","Azure Cognitive","WebRTC","OpenCV","MediaPipe","Dlib","Wav2Lip","OCR","Tesseract","PaddleOCR"] },
     { h:"Data & storage", c:COLORS.amber,   items:["Pinecone","MySQL","MongoDB","Oracle","HiveQL","Power BI","Predictive analytics","Time series"] },
@@ -195,17 +195,17 @@ const DEFAULTS = {
       tag:"Inference", date:"2025", read:"6 min", cover:"",
       title:"Why a 3B model outserved a 4B by 5×",
       dek:"Parameter count told us nothing about concurrent users per GPU. The KV cache told us everything.",
-      body:`<p>Model selection usually happens on a leaderboard — pick the smallest model that clears your quality bar, assume cost scales with parameter count. When I profiled this properly, a 3B served roughly <strong>five times</strong> the throughput of a 4B at equal latency, and the gap had almost nothing to do with the extra billion parameters.</p>
+      body:`<p>Model selection usually happens on a leaderboard: pick the smallest model that clears your quality bar, assume cost scales with parameter count. When I profiled this properly, a 3B served roughly <strong>five times</strong> the throughput of a 4B at equal latency, and the gap had almost nothing to do with the extra billion parameters.</p>
 <h3>Decode is memory-bound</h3>
-<p>During autoregressive decode you read the entire weight matrix to produce a single token. Arithmetic intensity is terrible. Roofline analysis puts decode firmly on the memory-bandwidth side of the ridge point, so latency tracks <em>bytes moved per token</em>, not FLOPs. That's exactly why <code>AWQ</code> and <code>FP8</code> buy latency — fewer bytes moved, same operation count.</p>
+<p>During autoregressive decode you read the entire weight matrix to produce a single token. Arithmetic intensity is terrible. Roofline analysis puts decode firmly on the memory-bandwidth side of the ridge point, so latency tracks <em>bytes moved per token</em>, not FLOPs. That's exactly why <code>AWQ</code> and <code>FP8</code> buy latency: fewer bytes moved, same operation count.</p>
 <h3>The real constraint is KV footprint</h3>
-<p class="pull">Concurrency is a memory budget problem. Whatever VRAM the weights don't occupy is what you spend on KV cache — and that residue sets your batch size.</p>
+<p class="pull">Concurrency is a memory budget problem. Whatever VRAM the weights don't occupy is what you spend on KV cache, and that residue sets your batch size.</p>
 <p>The two models differed in hidden size and head configuration in a way that made per-token KV noticeably heavier on the 4B. Once weights were resident, leftover VRAM divided by per-sequence KV gave a much smaller concurrent batch. Fewer sequences in flight means worse batching efficiency, which on a memory-bound workload compounds.</p>
 <h3>What I'd check first, next time</h3>
 <ul>
 <li>Per-token KV bytes at your real context length, not at 512 tokens.</li>
 <li>Residual VRAM after weights at your chosen quantisation.</li>
-<li>Whether <code>CUDA graphs</code> are actually capturing — ungraphed decode leaves launch overhead on the table at small batch.</li>
+<li>Whether <code>CUDA graphs</code> are actually capturing, since ungraphed decode leaves launch overhead on the table at small batch.</li>
 <li>Measured throughput under <code>vLLM</code> at target latency, verified with <code>torch.profiler</code>.</li>
 </ul>
 <p>None of this is exotic. It's just that the number everyone quotes is the one that doesn't predict what you're paying for.</p>`
@@ -216,12 +216,12 @@ const DEFAULTS = {
       dek:"Any single proctoring detector is wrong often enough to be unusable. The problem is what you do with four.",
       body:`<p>Building a detector is the easy half. The hard half is what happens when four detectors disagree and a person has to act on it.</p>
 <h3>Why OR and AND both fail</h3>
-<p>Fire on any single detector and you get false accusations — gaze drifts because someone is thinking, not cheating. Require all four to agree and you get silence, because real incidents rarely light up every channel at once. Neither rule is defensible to the person on the receiving end.</p>
+<p>Fire on any single detector and you get false accusations: gaze drifts because someone is thinking, not cheating. Require all four to agree and you get silence, because real incidents rarely light up every channel at once. Neither rule is defensible to the person on the receiving end.</p>
 <h3>Weighted blend, plus a boost</h3>
-<p>A weighted sum handles the ordinary case. But a pure linear blend under-reacts to a single extreme reading — a content signal at 98 gets averaged into irrelevance by three quiet channels.</p>
+<p>A weighted sum handles the ordinary case. But a pure linear blend under-reacts to a single extreme reading. A content signal at 98 gets averaged into irrelevance by three quiet channels.</p>
 <p class="pull">So the blend carries an exponential boost keyed on the strongest signal. One channel screaming can escalate the score, without any single channel being able to convict.</p>
 <h3>Bands, not verdicts</h3>
-<p>Output is calibrated to 0–100 and cut into risk bands, and every score carries the <strong>timestamped episodes</strong> that produced it. A reviewer gets an argument they can audit, not a verdict they must trust. When someone disputes a result, the conversation is about specific moments in a recording — not about whether the model is trustworthy in the abstract.</p>
+<p>Output is calibrated to 0–100 and cut into risk bands, and every score carries the <strong>timestamped episodes</strong> that produced it. A reviewer gets an argument they can audit, not a verdict they must trust. When someone disputes a result, the conversation is about specific moments in a recording, not about whether the model is trustworthy in the abstract.</p>
 <ul>
 <li>Calibration is a product decision. Band boundaries are where policy lives.</li>
 <li>Any score a human will argue with must ship with its evidence attached.</li>
@@ -232,14 +232,14 @@ const DEFAULTS = {
       tag:"Fine-tuning", date:"2025", read:"5 min", cover:"",
       title:"A three-tier eval harness for a small model",
       dek:"QLoRA gave me a number that looked better. Statistics told me whether to believe it.",
-      body:`<p>Fine-tuning a small model with <code>QLoRA</code> takes an afternoon. Knowing whether the result is genuinely better — reliably enough to gate CI on — took considerably longer.</p>
-<h3>Tier 1 — deterministic</h3>
+      body:`<p>Fine-tuning a small model with <code>QLoRA</code> takes an afternoon. Knowing whether the result is genuinely better, reliably enough to gate CI on, took considerably longer.</p>
+<h3>Tier 1: deterministic</h3>
 <p>Format validity, schema conformance, refusal behaviour. Anything with a correct answer. Cheap, runs on every commit, and catches the failures that would otherwise waste judge tokens.</p>
-<h3>Tier 2 — judge, with agreement measured</h3>
-<p>A judge model scores what resists unit testing. The discipline here isn't the prompt — it's measuring <strong>Cohen's kappa</strong> between judge and human raters on a held-out slice. A judge you haven't validated is a random number generator with good manners.</p>
-<h3>Tier 3 — paired significance</h3>
+<h3>Tier 2: judge, with agreement measured</h3>
+<p>A judge model scores what resists unit testing. The discipline here isn't the prompt. It's measuring <strong>Cohen's kappa</strong> between judge and human raters on a held-out slice. A judge you haven't validated is a random number generator with good manners.</p>
+<h3>Tier 3: paired significance</h3>
 <p class="pull">A moved average is not a result. <strong>McNemar's test</strong> on paired base-versus-tuned outcomes tells you whether the difference survives your actual sample size.</p>
-<p>This is the tier that turns evaluation into a gate. CI fails on a statistically significant regression, not on noise — which means the team trusts it enough to leave it on.</p>
+<p>This is the tier that turns evaluation into a gate. CI fails on a statistically significant regression, not on noise, which means the team trusts it enough to leave it on.</p>
 <ul>
 <li>Each tier costs an order of magnitude more than the last, so cheap checks filter first.</li>
 <li>The tiers fail for different reasons, making a red build diagnosable.</li>
@@ -290,7 +290,7 @@ async function loadContent(){
   try{
     const r = await fetch("content.json", { cache:"no-store" });
     if(r.ok) SITE = merge(SITE, await r.json());
-  }catch{ /* no published overrides — defaults are fine */ }
+  }catch{ /* no published overrides, defaults are fine */ }
 
   const draft = readDraft();
   if(draft){ SITE = merge(SITE, draft); hasDraft = true; }
@@ -388,7 +388,7 @@ function renderRoles(){
 const FUSION_HTML = `
 <div class="fusion">
   <div>
-    <h4>Live — signal fusion</h4>
+    <h4>Live signal fusion</h4>
     <p class="hint">Drag any signal. The blend is weighted, then boosted when one channel runs hot.</p>
     <div class="sigs">
       <div class="sig" style="--sig-c:${COLORS.blue}">
@@ -424,7 +424,7 @@ const FUSION_HTML = `
     </div>
     <div class="meter-scale"><span>0 Clear</span><span>30 Review</span><span>60 Elevated</span><span>85 Critical</span></div>
     <div class="episodes" id="episodes"></div>
-    <p class="gauge-note">Illustrative model — production weights and calibration are proprietary.</p>
+    <p class="gauge-note">Illustrative model. Production weights and calibration are proprietary.</p>
   </div>
 </div>`;
 
@@ -434,7 +434,7 @@ function demoHTML(c){
   const player = /^https?:\/\//.test(src)
     ? `<iframe src="${src}" title="${c.title} demo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`
     : `<video src="${src}" controls playsinline preload="metadata"></video>`;
-  return `<div class="demo"><div class="demo-frame">${player}</div><p class="demo-cap">Demo — ${c.title}</p></div>`;
+  return `<div class="demo"><div class="demo-frame">${player}</div><p class="demo-cap">Demo: ${c.title}</p></div>`;
 }
 
 function renderCases(){
@@ -697,15 +697,15 @@ function say(msg){
 document.addEventListener("click", async e => {
   const b = e.target.closest("[data-copy]");
   if(!b) return;
-  try{ await navigator.clipboard.writeText(b.dataset.copy); say("Copied — " + b.dataset.copy); }
-  catch{ say("Copy blocked — " + b.dataset.copy); }
+  try{ await navigator.clipboard.writeText(b.dataset.copy); say("Copied: " + b.dataset.copy); }
+  catch{ say("Copy blocked: " + b.dataset.copy); }
 });
 
 $("#resumeBtn").addEventListener("click", async e => {
   const url = SITE.profile.resume;
   try{ const r = await fetch(url, { method:"HEAD" }); if(r.ok){ e.currentTarget.href = url; return; } }catch{}
   e.preventDefault();
-  say("Résumé not uploaded yet — email kgenga2002@gmail.com");
+  say("Résumé not uploaded yet. Email kgenga2002@gmail.com");
 });
 
 /* ---------------- hero ribbons ---------------- */
