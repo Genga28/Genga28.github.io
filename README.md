@@ -1,103 +1,106 @@
 # Genga K — Portfolio
 
-A single self-contained page. No build step, no npm, no framework. Open `index.html` in a
-browser and it runs; drop the folder on any static host and it's live.
+Static site. No build step, no npm, no framework. Open `index.html` and it runs; push the
+folder anywhere static and it's live.
 
 ```
 Portfolio/
-  index.html                 the whole site
-  README.md                  this file
-  GENGA_K_RESUME.pdf         <- add this
+  index.html              markup shell
+  content.json            your published edits  (created by the editor)
+  GENGA_K_RESUME.pdf      <- add this
   assets/
-    genga.jpg                <- add this (headshot, portrait crop, ~1000x1250)
-    og.png                   <- add this (1200x630 LinkedIn preview card)
-    video/                   <- demo recordings go here
-    img/
+    css/main.css          design system + all styles
+    js/app.js             content + rendering + interactions
+    js/admin.js           the editor panel
+    img/genga.jpg         <- add this (or upload via the editor)
+    img/og.png            <- add this (1200x630 LinkedIn preview)
+    video/                demo recordings
 ```
 
-## The three things to add
+## Deploying to GitHub Pages
 
-Everything else is already written. Open `index.html`, find the `CONFIG` block near the top
-of the `<script>` (around line 900), and fill in what you have.
-
-**1. Headshot** — save it as `assets/genga.jpg`. Until then the About section shows a "GK"
-monogram plate, which looks deliberate rather than broken, so there's no rush.
-
-**2. Résumé** — drop `GENGA_K_RESUME.pdf` next to `index.html`. The Résumé button checks
-whether the file exists and shows an email prompt instead of a 404 if it doesn't.
-
-**3. Demo videos** — one line each in `CONFIG.videos`. Both forms work:
-
-```js
-videos: {
-  proctoring: "assets/video/proctor.mp4",              // local file
-  rag:        "https://www.youtube.com/embed/XXXXXXX", // YouTube EMBED url, not /watch
-  voice:      "",                                      // empty = no player, card still complete
-}
-```
-
-Valid ids: `proctoring`, `rag`, `voice`, `ocr`, `shelf`, `telecaller`, `desktop`.
-A 16:9 player appears inside that case-study card. Keep clips under ~30 MB — GitHub Pages
-rejects files over 100 MB, and a big autoplay-less MP4 still costs the visitor bandwidth.
-For anything longer than about 90 seconds, use the YouTube embed form instead.
-
-## Adding a blog post
-
-Add an object to the `POSTS` array. The card and the reader overlay build themselves.
-
-```js
-{
-  tag:"Retrieval", date:"2026", read:"5 min",
-  title:"Your title",
-  dek:"One sentence that makes someone click.",
-  body:`<p>HTML. <code>code</code>, <strong>bold</strong>,
-        and <p class="pull">for a pull quote.</p>`
-}
-```
-
-The three posts shipped in there are drafts written from your résumé facts — read them and
-make them yours before sharing the link.
-
-## Deploying
-
-**GitHub Pages** — free, and the URL sits under your own name.
+The repo is already initialised and committed. Create an empty repo on GitHub named
+**`Genga28.github.io`**, then:
 
 ```bash
 cd "C:\ZZZ Genga\LinkedIn\Portfolio"
-git init
-git add .
-git commit -m "Portfolio"
 git branch -M main
 git remote add origin https://github.com/Genga28/Genga28.github.io.git
 git push -u origin main
 ```
 
-Naming the repo `Genga28.github.io` publishes it at `https://genga28.github.io` — no
-settings to change. Any other repo name works too; then go to Settings → Pages → Source →
-`main` / root, and it lands at `genga28.github.io/<repo-name>`.
+Git Credential Manager will pop a browser sign-in on the first push. The site goes live at
+**https://genga28.github.io** within a minute — no settings to change, because a repo named
+`<username>.github.io` is served from root automatically.
 
-**Netlify / Vercel** — drag the folder onto their dashboard drop zone. Done in about ten
-seconds, and you get a custom subdomain.
+Any other repo name works too; then Settings → Pages → Source → `main` / root, and it lands
+at `genga28.github.io/<repo-name>`.
 
-## Before posting the link to LinkedIn
+## The editor
 
-LinkedIn reads the `og:` meta tags at the top of `index.html` to build the preview card.
-Add `assets/og.png` at 1200x630 — without it the post shows a bare link. If you edit the
-tags after LinkedIn has already scraped the URL, clear its cache with the
+Open it with **`#admin`** on the URL (`genga28.github.io/#admin`), or **Ctrl+Shift+E**, or
+the small *Editor* link in the footer. Passcode is `genga` — change `ADMIN_PASS` at the top
+of [assets/js/admin.js](assets/js/admin.js).
+
+> The passcode only hides the panel. It is client-side, so anyone can read it in the page
+> source. Treat it as a convenience latch, not security — real auth needs a backend.
+
+**Profile** — upload a headshot by dragging it onto the drop zone, edit your name, role,
+location, availability pill, the three headline lines, and the intro paragraph. Everything
+updates on the page as you type.
+
+**Writing** — add, edit, reorder and delete notes. Each takes a title, tag, date, read time,
+a one-sentence summary, an optional cover image, and an HTML body. Useful tags inside the
+body: `<h3>`, `<p class="pull">` for a pull quote, `<code>`, `<ul><li>`, `<img src="…">`.
+
+**Demo videos** — one field per system. A path like `assets/video/proctor.mp4`, or a YouTube
+**embed** URL (`youtube.com/embed/ID`, not `/watch?v=`). Blank means no player and the card
+stays complete. Keep local clips under ~30 MB; GitHub Pages rejects files over 100 MB.
+
+### How publishing works
+
+There's no server, so edits save to **localStorage** — only you, in that browser, see them.
+An amber bar appears while a local draft is active. To make edits public:
+
+1. Editor → **Publish** tab → **Download content.json** (or **Copy JSON**).
+2. Save it as `content.json` next to `index.html`.
+3. `git add content.json && git commit -m "Update notes" && git push`
+
+The site loads `content.json` on every visit and layers it over the defaults in `app.js`.
+Uploaded images are embedded as data URIs, so `content.json` grows with each one — for a
+large photo, save the file to `assets/img/` and point the path field at it instead.
+
+## Editing without the panel
+
+All content lives in the `DEFAULTS` object at the top of [assets/js/app.js](assets/js/app.js):
+`profile`, `telemetry`, `roles`, `cases`, `stack`, `videos`, `posts`, `links`. Roles and case
+studies are only editable here, not in the panel — they're structural.
+
+Each role and case carries a `c:` colour from the `COLORS` map at the top of the file; that
+colour drives its timeline bar, accent stripe, chips and hover glow.
+
+## Before posting to LinkedIn
+
+LinkedIn builds its preview card from the `og:` meta tags in `index.html`. Add
+`assets/img/og.png` at 1200x630, or the post shows a bare link. If you edit the tags after
+LinkedIn has already scraped the URL, clear its cache with the
 [Post Inspector](https://www.linkedin.com/post-inspector/).
 
-## Notes on how it's built
+## Notes on the build
 
-- **Smooth scrolling** comes from Lenis, loaded from jsDelivr. If that request is ever
-  blocked the page falls back to native scrolling — nothing breaks.
-- **Fonts** are Archivo (display), IBM Plex Sans (body), IBM Plex Mono (data and labels),
-  from Google Fonts, each with a real fallback stack.
-- **The hero canvas** draws four signal traces converging into one — the proctoring engine's
-  fusion model, as ambient motion.
-- **The fusion widget** in the first case study is live: the weights, the exponential boost
-  above 70, and the risk bands are all in the `fusion instrument` block. It's labelled as
-  illustrative on the page, so it makes no claim about Jobtwine's production constants.
-- **`prefers-reduced-motion`** is respected throughout — animation, canvas, and smooth
-  scroll all stand down.
-- Everything is one file on purpose. It's easier to host, easier to hand to someone, and
-  there's no toolchain to rot in six months.
+- **Smooth scrolling** is Lenis from jsDelivr. If that request is blocked the page falls back
+  to native scrolling — nothing breaks.
+- **Type** is Archivo for display, IBM Plex Sans for everything else. No monospace anywhere
+  except inline `<code>`.
+- **Colour** — seven accents, one per section, carried through the side rail, eyebrows,
+  timeline bars and case-study stripes. Semantic green→red is reserved for the risk bands in
+  the fusion widget and used nowhere else.
+- **The timeline** is a Gantt, not a single track, because Yubi and Space Marvel overlap
+  Jan–Jun 2025. Positions are computed from the `start`/`end` dates on each role, so the axis
+  extends itself as time passes.
+- **The fusion widget** is live: weights, the exponential boost above 70, and the band cuts
+  are all in `initFusion()`. It's labelled illustrative on the page, so it claims nothing
+  about Jobtwine's production constants.
+- **Roles don't repeat the case studies.** Each role links across to the systems built there
+  instead of restating them.
+- `prefers-reduced-motion` stands down animation, the canvas and smooth scroll.
