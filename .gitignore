@@ -10,3 +10,4 @@ demos/**/output/
 demos/**/site/
 demos/**/voices/*.onnx*
 demos/**/session.db
+demos/**/uploads/
