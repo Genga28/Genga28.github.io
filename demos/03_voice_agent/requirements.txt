@@ -1,0 +1,20 @@
+# Transport: our own WebRTC peer, no SFU vendor
+aiortc==1.9.0
+av==12.3.0
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+websockets==13.1
+
+# Turn detection + speech to text (open source, runs locally)
+webrtcvad==2.0.10
+faster-whisper==1.0.3
+
+# Text to speech (open source, runs locally)
+piper-tts==1.2.0
+onnxruntime==1.19.2
+pyttsx3==2.98          # fallback when no Piper voice is installed
+
+# Brain (optional: without a key the agent uses the scripted host)
+anthropic>=0.40.0
+
+numpy<2.0

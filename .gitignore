@@ -3,3 +3,10 @@ Thumbs.db
 node_modules/
 *.log
 .vscode/
+__pycache__/
+*.pyc
+.venv/
+demos/**/output/
+demos/**/site/
+demos/**/voices/*.onnx*
+demos/**/session.db

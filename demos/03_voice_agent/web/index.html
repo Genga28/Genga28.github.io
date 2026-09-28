@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aria — live room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#06080D; --bg-2:#0B1018; --surface:#121927; --line:#1F2A3A;
+  --txt:#EEF3FA; --txt-2:#97A5B8; --txt-3:#63718400;
+  --blue:#7AB8FF; --violet:#B49BF5; --teal:#5FD9C4; --amber:#F5BE8B; --pink:#F49BB8; --green:#8FE39A;
+  --ease:cubic-bezier(.16,1,.3,1);
+  --fd:"Archivo",system-ui,sans-serif; --fb:"IBM Plex Sans",system-ui,sans-serif;
+}
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0; background:var(--bg); color:var(--txt); font-family:var(--fb);
+  overflow:hidden; -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- ambient field ---------- */
+.aurora{ position:fixed; inset:-20%; z-index:0; filter:blur(90px); opacity:.55; pointer-events:none; }
+.aurora i{
+  position:absolute; border-radius:50%; display:block; mix-blend-mode:screen;
+  animation:drift 22s var(--ease) infinite alternate;
+}
+.aurora i:nth-child(1){ width:46vw; height:46vw; left:6%;  top:8%;  background:radial-gradient(circle,#2F6CBF,transparent 66%); animation-duration:26s; }
+.aurora i:nth-child(2){ width:40vw; height:40vw; right:4%; top:18%; background:radial-gradient(circle,#6B4FB0,transparent 66%); animation-duration:31s; animation-delay:-6s; }
+.aurora i:nth-child(3){ width:38vw; height:38vw; left:32%; bottom:2%; background:radial-gradient(circle,#2C8C7E,transparent 66%); animation-duration:24s; animation-delay:-12s; }
+@keyframes drift{
+  from{ transform:translate3d(0,0,0) scale(1); }
+  to  { transform:translate3d(6vw,-5vh,0) scale(1.22); }
+}
+.grid{
+  position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.16;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:64px 64px;
+  -webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 45%,#000,transparent 78%);
+          mask-image:radial-gradient(ellipse 70% 60% at 50% 45%,#000,transparent 78%);
+}
+
+/* ---------- stage ---------- */
+.stage{ position:relative; z-index:2; height:100%; display:grid; grid-template-rows:auto 1fr auto; }
+
+.bar{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 26px; flex-wrap:wrap; }
+.brandline{ display:flex; align-items:center; gap:12px; }
+.orb{
+  width:34px; height:34px; border-radius:11px;
+  background:linear-gradient(140deg,var(--blue),var(--violet) 50%,var(--pink));
+  box-shadow:0 0 28px -6px var(--violet);
+  animation:breathe 4s var(--ease) infinite;
+}
+@keyframes breathe{ 0%,100%{ transform:scale(.92) rotate(0deg) } 50%{ transform:scale(1.05) rotate(8deg) } }
+.brandline b{ font-family:var(--fd); font-weight:800; font-size:20px; letter-spacing:-.03em; display:block; line-height:1.1; }
+.brandline span{ font-size:13px; color:var(--txt-2); }
+
+.badges{ display:flex; gap:8px; flex-wrap:wrap; }
+.badge{
+  font-size:12.5px; color:var(--txt-2); border:1px solid var(--line);
+  background:rgba(18,25,39,.7); padding:7px 13px; border-radius:100px; backdrop-filter:blur(8px);
+  display:inline-flex; align-items:center; gap:7px; white-space:nowrap;
+}
+.badge b{ color:var(--txt); font-weight:600; }
+.badge .d{ width:6px; height:6px; border-radius:50%; background:var(--teal); }
+
+/* ---------- avatar ---------- */
+.field{ position:relative; display:grid; place-items:center; min-height:0; }
+#scene{ position:absolute; inset:0; width:100%; height:100%; }
+
+.rings{ position:absolute; width:min(60vh,60vw); aspect-ratio:1; pointer-events:none; }
+.rings i{
+  position:absolute; inset:0; border-radius:50%; border:1px solid var(--blue);
+  opacity:0; transform:scale(.62);
+  animation:ripple 3.4s var(--ease) infinite;
+}
+.rings i:nth-child(2){ animation-delay:1.13s; border-color:var(--violet); }
+.rings i:nth-child(3){ animation-delay:2.26s; border-color:var(--teal); }
+@keyframes ripple{
+  0%   { opacity:0;   transform:scale(.62); }
+  18%  { opacity:.42; }
+  100% { opacity:0;   transform:scale(1.28); }
+}
+body.speaking .rings i{ animation-duration:1.5s; }
+
+.statepill{
+  position:absolute; bottom:22px; left:50%; transform:translateX(-50%);
+  display:inline-flex; align-items:center; gap:11px; padding:10px 20px;
+  border-radius:100px; border:1px solid var(--line); background:rgba(11,16,24,.82);
+  backdrop-filter:blur(12px); font-size:14px; color:var(--txt-2); white-space:nowrap;
+  transition:border-color .5s var(--ease), color .5s var(--ease);
+}
+.statepill .dot{ width:9px; height:9px; border-radius:50%; background:var(--txt-2); transition:background .4s var(--ease), box-shadow .4s var(--ease); }
+body.listening .statepill{ border-color:#2A4A63; color:var(--blue); }
+body.listening .statepill .dot{ background:var(--blue); box-shadow:0 0 14px var(--blue); animation:blip 1.6s var(--ease) infinite; }
+body.thinking  .statepill{ border-color:#463A66; color:var(--violet); }
+body.thinking  .statepill .dot{ background:var(--violet); box-shadow:0 0 14px var(--violet); animation:blip .7s var(--ease) infinite; }
+body.speaking  .statepill{ border-color:#2A5E55; color:var(--teal); }
+body.speaking  .statepill .dot{ background:var(--teal); box-shadow:0 0 14px var(--teal); animation:blip .45s var(--ease) infinite; }
+@keyframes blip{ 0%,100%{ transform:scale(.7); opacity:.65 } 50%{ transform:scale(1.15); opacity:1 } }
+
+/* level meter */
+.level{ position:absolute; bottom:70px; left:50%; transform:translateX(-50%); display:flex; gap:4px; align-items:flex-end; height:34px; }
+.level i{ width:4px; border-radius:3px; background:var(--teal); height:4px; transition:height .08s linear, opacity .3s; opacity:.5; }
+
+/* ---------- captions ---------- */
+.captions{ padding:0 26px 26px; display:flex; flex-direction:column; gap:12px; align-items:center; }
+.cap{
+  max-width:min(940px,92vw); text-align:center; opacity:0; transform:translateY(14px);
+  transition:opacity .55s var(--ease), transform .55s var(--ease);
+}
+.cap.on{ opacity:1; transform:none; }
+.cap.agent{ font-family:var(--fd); font-weight:600; font-size:clamp(20px,3.1vw,34px); line-height:1.24; letter-spacing:-.025em; }
+.cap.agent .w{ display:inline-block; opacity:0; transform:translateY(8px); animation:wordin .45s var(--ease) forwards; }
+@keyframes wordin{ to{ opacity:1; transform:none; } }
+.cap.user{ font-size:15.5px; color:var(--txt-2); }
+.cap.user::before{ content:"you  "; color:var(--blue); font-weight:600; }
+
+/* ---------- pip ---------- */
+.pip{
+  position:absolute; right:26px; bottom:26px; width:210px; aspect-ratio:4/3;
+  border-radius:16px; overflow:hidden; border:1px solid var(--line);
+  background:#000; box-shadow:0 26px 60px -30px #000;
+  transform:translateY(16px); opacity:0; transition:opacity .7s var(--ease), transform .7s var(--ease);
+}
+.pip.on{ opacity:1; transform:none; }
+.pip video{ width:100%; height:100%; object-fit:cover; transform:scaleX(-1); display:block; }
+.pip span{ position:absolute; left:10px; bottom:8px; font-size:11.5px; color:#fff; text-shadow:0 1px 6px #000; }
+@media (max-width:760px){ .pip{ width:132px; right:16px; bottom:16px; } }
+
+/* ---------- join ---------- */
+.gate{
+  position:fixed; inset:0; z-index:20; display:grid; place-items:center;
+  background:rgba(6,8,13,.86); backdrop-filter:blur(16px);
+  transition:opacity .7s var(--ease), visibility .7s;
+}
+.gate.gone{ opacity:0; visibility:hidden; }
+.gate .box{ text-align:center; max-width:520px; padding:32px; }
+.gate h1{ font-family:var(--fd); font-weight:800; font-size:clamp(34px,6vw,58px); letter-spacing:-.04em; margin:0 0 14px; line-height:1.02; }
+.gate h1 em{ font-style:normal; background:linear-gradient(100deg,var(--blue),var(--violet) 55%,var(--pink)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.gate p{ color:var(--txt-2); font-size:17px; margin:0 0 28px; }
+.join{
+  font-family:var(--fb); font-size:17px; font-weight:600; padding:16px 38px; border-radius:100px;
+  background:linear-gradient(135deg,var(--blue),var(--violet)); color:#06121F; border:0; cursor:pointer;
+  box-shadow:0 18px 44px -18px var(--violet); transition:transform .4s var(--ease), filter .4s var(--ease);
+}
+.join:hover{ transform:translateY(-2px); filter:brightness(1.08); }
+.join:disabled{ opacity:.55; cursor:wait; transform:none; }
+.gate small{ display:block; margin-top:18px; color:#5C6878; font-size:13px; }
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+}
+</style>
+</head>
+<body class="idle">
+
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="grid" aria-hidden="true"></div>
+
+<div class="stage">
+  <div class="bar">
+    <div class="brandline">
+      <span class="orb" aria-hidden="true"></span>
+      <span><b>Aria</b><span>live room · self-hosted WebRTC</span></span>
+    </div>
+    <div class="badges" id="badges">
+      <span class="badge"><span class="d"></span>connecting</span>
+    </div>
+  </div>
+
+  <div class="field">
+    <canvas id="scene"></canvas>
+    <div class="rings" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="level" id="level" aria-hidden="true"></div>
+    <div class="statepill"><span class="dot"></span><span id="stateText">waiting to join</span></div>
+    <div class="pip" id="pip"><video id="cam" autoplay playsinline muted></video><span>you</span></div>
+  </div>
+
+  <div class="captions">
+    <div class="cap user" id="capUser"></div>
+    <div class="cap agent" id="capAgent"></div>
+  </div>
+</div>
+
+<div class="gate" id="gate">
+  <div class="box">
+    <h1>Say hello to <em>Aria</em></h1>
+    <p>A voice agent running entirely on this machine. Whisper listens, Claude thinks,
+       Piper speaks, and the room is a WebRTC peer connection to a local Python process.</p>
+    <button class="join" id="joinBtn">Join the room</button>
+    <small>Your browser will ask for the microphone. Camera is optional and never leaves this machine.</small>
+  </div>
+</div>
+
+<audio id="agentAudio" autoplay></audio>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js" } }
+</script>
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>

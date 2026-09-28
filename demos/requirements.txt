@@ -1,0 +1,28 @@
+# Demo 1 - desktop RPA
+pyautogui==0.9.54
+pillow==10.4.0
+pytesseract==0.3.13
+openpyxl==3.1.5
+
+# Demo 2 - web automation
+selenium==4.25.0
+requests==2.32.3
+
+# Demo 3 - voice agent
+SpeechRecognition==3.10.4
+pyttsx3==2.98
+PyAudio==0.2.14
+anthropic>=0.40.0          # optional: only used with --brain claude
+
+# Demo 4 - proctoring
+mediapipe==0.10.14
+opencv-python==4.10.0.84
+numpy<2.0                  # mediapipe 0.10.x is not built against numpy 2
+
+# Shared
+sounddevice==0.5.0         # optional: mic level for the proctoring audio channel
+
+# Note on Lackey (the Sikuli port on the resume): it pins old Pillow and
+# has not been released since 2019, so it does not install cleanly on
+# Python 3.10. Demo 1 implements the same screen-targeting idea directly
+# with PyAutoGUI + OpenCV template matching. See 01_rpa_desktop/README.md.

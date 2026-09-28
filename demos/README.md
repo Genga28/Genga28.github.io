@@ -1,0 +1,86 @@
+# Demos
+
+Four runnable applications. Run them locally, screen-record them, drop the clips into
+`assets/video/`, and point the portfolio at them from the editor's **Demo videos** tab.
+
+Recording locally beats hosting these: no cloud bill, no cold starts, no webcam permissions
+prompt for the viewer, and a 40-second clip shows the thing working better than a live app
+that a recruiter would have to figure out.
+
+| # | Demo | Video id | Shows |
+|---|------|----------|-------|
+| 1 | Desktop RPA: medical bill to Excel | `rpa` | PyAutoGUI + OpenCV screen targeting, OCR, openpyxl |
+| 2 | Web automation: drug reference table | `webauto` | Selenium, structured scraping, openpyxl |
+| 3 | Voice agent with avatar | `voice` | ASR, TTS, animated avatar, optional Claude brain |
+| 4 | Real-time proctoring | `proctoring` | MediaPipe face mesh, iris gaze, signal fusion |
+
+## Setup
+
+Python 3.10 is already on this machine. From the repo root:
+
+```powershell
+cd "C:\ZZZ Genga\LinkedIn\Portfolio\Genga28.github.io\demos"
+py -3.10 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+If PowerShell blocks the activate script:
+`Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
+
+### Two optional external installs
+
+Neither blocks a demo from running; each one improves a demo if present.
+
+- **Tesseract OCR** for demo 1's text extraction.
+  [UB Mannheim installer](https://github.com/UB-Mannheim/tesseract/wiki), default path
+  `C:\Program Files\Tesseract-OCR\tesseract.exe`. Without it, demo 1 falls back to the
+  sidecar JSON that ships with the generated bill and says so in the log.
+- **Google Chrome** for demo 2. Selenium 4.6+ downloads the matching driver itself, so
+  there is no chromedriver step.
+
+## Running them
+
+```powershell
+python 01_rpa_desktop/rpa_bill_to_excel.py
+python 02_web_automation/drug_table.py
+python 03_voice_agent/voice_agent.py
+python 04_proctoring/proctor.py
+```
+
+Each folder has its own README with flags and what to expect on screen.
+
+## Recording
+
+Windows has a built-in recorder: **Win+Alt+R** starts and stops it (Xbox Game Bar), and
+clips land in `Videos\Captures`. For a region capture or a webcam inset, OBS is better.
+
+Guidelines that make these read well on the portfolio:
+
+- **30 to 60 seconds.** Long enough to show the thing working, short enough that nobody
+  scrubs. Start recording after the window is already open.
+- **1280x720.** The portfolio player is 16:9, and larger just costs bandwidth.
+- **Keep it under 30 MB.** GitHub rejects files over 100 MB, and a recruiter on mobile data
+  will not wait. `ffmpeg -i in.mp4 -vcodec libx264 -crf 28 -vf scale=1280:-2 out.mp4`
+  usually lands a minute of screen capture around 8 MB.
+- **No audio needed** except for demo 3, where the whole point is the conversation.
+
+Then:
+
+```powershell
+copy recording.mp4 ..\assets\video\rpa.mp4
+```
+
+Open the site, press **Ctrl+Shift+E**, unlock, go to **Demo videos**, and set
+`rpa` to `assets/video/rpa.mp4`. Save draft, download `content.json`, commit, push.
+
+For clips over ~30 MB, upload to YouTube as unlisted and paste the **embed** URL
+(`https://www.youtube.com/embed/VIDEO_ID`) instead of a path. The player handles both.
+
+## A note on what these are
+
+These are demonstration builds written to be recorded, not production systems. The
+proctoring demo uses the same weighted-blend-plus-exponential-boost fusion shape described
+on the portfolio, but its weights and thresholds are illustrative, and nothing here carries
+over from any employer's codebase.
