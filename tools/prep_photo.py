@@ -101,9 +101,9 @@ def crop_to(img: Image.Image, size: tuple[int, int], face=None,
             zoom: float = 4.2, headroom: float = 0.40):
     """Crop a headshot around `face`, then resize to `size`.
 
-    `zoom` is crop height as a multiple of face height. 4.2 gives head and
-    shoulders, which is what cuts off a table in front of the subject. Lower
-    is tighter. `headroom` is where the face centre sits vertically in the
+    `zoom` is crop height as a multiple of face height. Around 3.1 gives head
+    and shoulders, which is what cuts off a table in front of the subject.
+    Much above 3.5 and a plate on the table creeps back into frame. `headroom` is where the face centre sits vertically in the
     result: 0.40 puts it slightly above centre, the way portraits are framed.
 
     With no face, fall back to an aspect-only crop biased toward the top,
@@ -150,7 +150,7 @@ def make_og(portrait: Image.Image, name: str, title: str, out: Path, face=None) 
     card.paste(glow.resize(OG, Image.LANCZOS).filter(ImageFilter.GaussianBlur(70)), (0, 0))
 
     # photo on the right, feathered into the background
-    ph = crop_to(portrait, (470, 630), face=face, zoom=3.6, headroom=0.42)
+    ph = crop_to(portrait, (470, 630), face=face, zoom=2.9, headroom=0.40)
     mask = Image.new("L", (470, 630), 255)
     md = ImageDraw.Draw(mask)
     for i in range(170):                       # horizontal fade on the left edge
@@ -190,7 +190,7 @@ def main() -> int:
     ap.add_argument("--name", default="Genga K")
     ap.add_argument("--title", default="Applied AI Engineer")
     ap.add_argument("--no-og", action="store_true", help="skip the share card")
-    ap.add_argument("--zoom", type=float, default=4.2,
+    ap.add_argument("--zoom", type=float, default=3.1,
                     help="crop height as a multiple of face height. 3.2 = tight head and "
                          "shoulders, 5.5 = looser. Lower this if anything unwanted is still in frame.")
     ap.add_argument("--headroom", type=float, default=0.40,
