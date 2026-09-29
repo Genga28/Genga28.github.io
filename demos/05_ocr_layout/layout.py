@@ -20,6 +20,7 @@ Engines, in preference order:
 
 from __future__ import annotations
 
+import os
 import statistics
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -90,7 +91,8 @@ class TesseractEngine:
         import pytesseract
         from shutil import which
 
-        exe = which("tesseract") or r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+        exe = (os.environ.get("TESSERACT_CMD") or which("tesseract")
+               or r"C:\Program Files\Tesseract-OCR\tesseract.exe")
         if Path(exe).exists():
             pytesseract.pytesseract.tesseract_cmd = exe
         self._pt = pytesseract

@@ -20,12 +20,17 @@ import time
 import uuid
 from pathlib import Path
 
+import os
+
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 import layout as L
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 HERE = Path(__file__).parent
 WEB = HERE / "web"
@@ -45,7 +50,7 @@ def engine():
     global _engine, _engine_note
     if _engine is None:
         t0 = time.time()
-        _engine, _ = L.load_engine(prefer="paddle")
+        _engine, _ = L.load_engine(prefer=os.environ.get("OCR_ENGINE") or "paddle")
         _engine_note = f"{_engine.name} (ready in {time.time() - t0:.1f}s)"
         print(f"  engine: {_engine_note}")
     return _engine

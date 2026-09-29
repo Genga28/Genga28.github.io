@@ -120,8 +120,8 @@ footer{ position:relative; z-index:2; padding:0 34px 40px; color:var(--txt-3); f
 </header>
 
 <div class="drop" id="drop">
-  <b>Drop an image here</b>
-  <span>or press <em>Generate a hard page</em> for a two-column invoice that breaks reading-order OCR</span>
+  <b>Drop an image, or press Ctrl+V to paste one</b>
+  <span>Win+Shift+S snips any region. Or press <em>Generate a hard page</em> for a two-column invoice that breaks reading-order OCR.</span>
 </div>
 
 <main>
@@ -293,6 +293,16 @@ els.sample.onclick = async () => {
 ["dragenter","dragover"].forEach(e => els.drop.addEventListener(e, ev => { ev.preventDefault(); els.drop.classList.add("over"); }));
 ["dragleave","drop"].forEach(e => els.drop.addEventListener(e, ev => { ev.preventDefault(); els.drop.classList.remove("over"); }));
 els.drop.addEventListener("drop", ev => { const f = ev.dataTransfer.files[0]; if (f) send(f, f.name); });
+
+// Paste an image straight from the clipboard. Snip a region with Win+Shift+S,
+// press Ctrl+V anywhere on the page, and it goes through the same pipeline.
+addEventListener("paste", ev => {
+  const item = [...(ev.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
+  if (!item) return;
+  ev.preventDefault();
+  const blob = item.getAsFile();
+  if (blob) send(blob, "pasted." + (blob.type.split("/")[1] || "png"));
+});
 
 els.tabs.forEach(b => b.onclick = () => {
   if (b.dataset.tab === "export") {

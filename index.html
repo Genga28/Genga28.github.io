@@ -3,18 +3,64 @@
 <head><!--WRAP-->
 <meta charset="utf-8"><!--WRAP-->
 <meta name="viewport" content="width=device-width, initial-scale=1"><!--WRAP-->
-<meta name="description" content="Genga K, Applied AI Engineer. Production RAG pipelines, agentic workflows, real-time voice and vision, transformer internals and concurrency."><!--WRAP-->
+<meta name="description" content="Applied AI Engineer in Bengaluru with 3+ years building production AI: voice agents, document automation and real-time video analysis. Open to AI/ML engineering roles. See the demos."><!--WRAP-->
 <meta name="author" content="Genga K"><!--WRAP-->
-<meta property="og:type" content="website"><!--WRAP-->
-<meta property="og:title" content="Genga K, Applied AI Engineer"><!--WRAP-->
-<meta property="og:description" content="I build AI systems that hold up in production: multi-signal scoring, real-time RAG, voice agents, hybrid OCR."><!--WRAP-->
-<meta property="og:image" content="assets/img/og.png"><!--WRAP-->
+<meta name="robots" content="index, follow, max-image-preview:large"><!--WRAP-->
+<link rel="canonical" href="https://genga28.github.io/"><!--WRAP-->
+<meta property="og:type" content="profile"><!--WRAP-->
+<meta property="og:url" content="https://genga28.github.io/"><!--WRAP-->
+<meta property="og:site_name" content="Genga K"><!--WRAP-->
+<meta property="og:title" content="Genga K — Applied AI Engineer | Voice AI, Document AI, Computer Vision"><!--WRAP-->
+<meta property="og:description" content="3+ years building AI that runs in production. 5,000 documents a day automated, 50 live sessions at once, 10 systems shipped."><!--WRAP-->
+<meta property="og:image" content="https://genga28.github.io/assets/img/og.png"><!--WRAP-->
+<meta property="og:image:width" content="1200"><!--WRAP-->
+<meta property="og:image:height" content="630"><!--WRAP-->
 <meta name="twitter:card" content="summary_large_image"><!--WRAP-->
-<title>Genga K, Applied AI Engineer</title>
+<meta name="twitter:title" content="Genga K — Applied AI Engineer"><!--WRAP-->
+<meta name="twitter:description" content="Voice agents, document automation and real-time video analysis. Built end to end, running live."><!--WRAP-->
+<meta name="theme-color" content="#0A0D12"><!--WRAP-->
+<title>Genga K — Applied AI Engineer | Voice AI, RAG &amp; Computer Vision</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="assets/css/main.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Genga K",
+  "jobTitle": "Applied AI Engineer",
+  "url": "https://genga28.github.io/",
+  "image": "https://genga28.github.io/assets/img/genga.jpg",
+  "email": "mailto:kgenga2002@gmail.com",
+  "telephone": "+91-8248870532",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Bengaluru",
+    "addressRegion": "Karnataka",
+    "addressCountry": "IN"
+  },
+  "sameAs": [
+    "https://www.linkedin.com/in/gengak",
+    "https://github.com/Genga28",
+    "https://leetcode.com/u/kgenga2811/"
+  ],
+  "worksFor": { "@type": "Organization", "name": "Jobtwine" },
+  "alumniOf": {
+    "@type": "CollegeOrUniversity",
+    "name": "Coimbatore Institute of Technology",
+    "sameAs": "https://www.cit.edu.in/"
+  },
+  "knowsAbout": [
+    "Applied AI", "Machine Learning", "Retrieval Augmented Generation",
+    "Large Language Models", "Voice AI", "Speech Recognition", "Computer Vision",
+    "Optical Character Recognition", "WebRTC", "Python", "FastAPI", "PyTorch",
+    "Transformer internals", "Model evaluation", "Robotic Process Automation"
+  ],
+  "seeks": { "@type": "Demand", "name": "AI / ML Engineering roles" }
+}
+</script>
 </head><!--WRAP-->
 <body><!--WRAP-->
 
@@ -29,6 +75,7 @@
     <nav class="nav-links" id="navLinks" aria-label="Sections">
       <a href="#work">Work</a>
       <a href="#systems">Systems</a>
+      <a href="demos.html" class="hot">Demos</a>
       <a href="#stack">Stack</a>
       <a href="#writing">Writing</a>
       <a href="#about">About</a>
@@ -57,7 +104,7 @@
         <h1 class="display" id="headline"></h1>
         <p class="lede" id="lede"></p>
         <div class="cta-row">
-          <a class="btn btn-primary" href="#systems">See the work <span class="arr" aria-hidden="true">→</span></a>
+          <a class="btn btn-primary" href="demos.html">See what I built <span class="arr" aria-hidden="true">→</span></a>
           <a class="btn" id="resumeBtn" href="GENGA_K_RESUME.pdf" target="_blank" rel="noopener">Résumé</a>
           <a class="btn" href="https://www.linkedin.com/in/gengak" target="_blank" rel="noopener">LinkedIn</a>
           <a class="btn" href="https://github.com/Genga28" target="_blank" rel="noopener">GitHub</a>
@@ -80,8 +127,7 @@
   <div class="wrap">
     <div class="sec-head reveal">
       <p class="eyebrow">Experience</p>
-      <h2 class="sec-title">Where I&rsquo;ve shipped.</h2>
-      <p class="sec-sub">Five roles since 2022. Tap a bar to jump to one.</p>
+      <h2 class="sec-title">Where I&rsquo;ve worked.</h2>
     </div>
     <div class="tl-scroll reveal"><div class="tl" id="timeline"></div></div>
     <div class="roles reveal" id="roles"></div>
@@ -93,8 +139,8 @@
   <div class="wrap">
     <div class="sec-head reveal">
       <p class="eyebrow">Selected systems</p>
-      <h2 class="sec-title">Eight things I built.</h2>
-      <p class="sec-sub">The flagship is first, and it&rsquo;s live. Drag the sliders.</p>
+      <h2 class="sec-title">Ten systems, shipped.</h2>
+      <p class="sec-sub">The first one is interactive. Drag the sliders.</p>
     </div>
     <div class="cases" id="cases"></div>
   </div>
@@ -131,13 +177,9 @@
     </div>
     <div class="about-body reveal">
       <p>
-        Five-year integrated M.Sc. in <strong>Decision and Computing Sciences</strong> at Coimbatore
-        Institute of Technology, 9.45 CGPA. RPA at EXL Health, OCR for loan underwriting at Yubi,
-        a freelance stint leading a small team, now applied AI at Jobtwine.
-      </p>
-      <p>
-        I care about the unglamorous half: <strong>calibration, guardrails, latency budgets, and
-        evaluation you can defend</strong>. A demo that works once is easy.
+        M.Sc. in Decision and Computing Sciences, <strong>9.45 CGPA</strong>. Three years shipping AI
+        at Jobtwine, Yubi and EXL Health. I care about the half nobody demos:
+        <strong>calibration, guardrails, latency and evaluation you can defend</strong>.
       </p>
 
       <dl class="facts">
@@ -172,7 +214,7 @@
       <div class="reveal">
         <p class="eyebrow">Contact</p>
         <h2 class="big">Got something that has to <em>actually work</em>?</h2>
-        <p class="sec-sub">Open to AI/ML engineering roles, and to consulting on retrieval, voice and evaluation.</p>
+        <p class="sec-sub">Open to AI/ML engineering roles. Fastest reply is email.</p>
         <div class="cta-row" style="animation:none;opacity:1;margin-top:28px">
           <a class="btn btn-primary" href="mailto:kgenga2002@gmail.com?subject=Let%27s%20talk">Email me <span class="arr" aria-hidden="true">→</span></a>
           <button class="btn" data-copy="kgenga2002@gmail.com">Copy address</button>
@@ -188,7 +230,7 @@
 <footer class="footer">
   <div class="wrap footer-inner">
     <span>© <span id="yr"></span> Genga K, Bengaluru, India</span>
-    <span><a href="#top">Back to top ↑</a> &nbsp;·&nbsp; <a href="#" data-admin-open>Editor</a></span>
+    <span><a href="demos.html">Demos</a> &nbsp;·&nbsp; <a href="#top">Back to top ↑</a> &nbsp;·&nbsp; <a href="#" data-admin-open>Editor</a></span>
   </div>
 </footer>
 
@@ -219,6 +261,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js"></script>
+<script src="assets/js/data.js"></script>
 <script src="assets/js/admin.js"></script>
 <script src="assets/js/app.js"></script>
 

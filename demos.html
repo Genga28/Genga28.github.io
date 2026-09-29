@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demos — See What I've Built | Genga K, AI Engineer</title>
+<meta name="description" content="Watch five AI systems running: live proctoring that scores what it sees, an interruptible voice agent, layout-preserving OCR, and two automation bots. Built and recorded by Genga K.">
+<link rel="canonical" href="https://genga28.github.io/demos.html">
+<meta name="robots" content="index, follow">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://genga28.github.io/demos.html">
+<meta property="og:title" content="See What I've Built — Genga K">
+<meta property="og:description" content="Five AI systems, running. Proctoring, voice agents, document AI and automation.">
+<meta property="og:image" content="https://genga28.github.io/assets/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/css/main.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "Demos by Genga K",
+  "description": "Five working AI systems: live proctoring, a voice agent, layout-preserving OCR, and two automation bots.",
+  "url": "https://genga28.github.io/demos.html",
+  "author": { "@type": "Person", "name": "Genga K", "url": "https://genga28.github.io" }
+}
+</script>
+</head>
+<body>
+
+<div class="vignette" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="brand">
+      <span class="brand-mark" id="brandMark" aria-hidden="true">GK</span>
+      <span><span id="brandName">Genga K</span><small id="brandKicker">Applied AI Engineer</small></span>
+    </a>
+    <nav class="nav-links" id="navLinks" aria-label="Sections">
+      <a href="index.html#work">Work</a>
+      <a href="index.html#systems">Systems</a>
+      <a href="demos.html" class="active">Demos</a>
+      <a href="index.html#stack">Stack</a>
+      <a href="index.html#writing">Writing</a>
+      <a href="index.html#contact">Contact</a>
+    </nav>
+    <div class="nav-right">
+      <a class="btn btn-sm btn-primary" href="mailto:kgenga2002@gmail.com?subject=Let%27s%20talk">Get in touch</a>
+      <button class="menu-btn" id="menuBtn" aria-label="Toggle menu" aria-expanded="false"><i></i></button>
+    </div>
+  </div>
+  <div class="progress" id="progress"></div>
+</header>
+
+<main>
+
+<section class="demo-hero">
+  <div class="wrap">
+    <p class="eyebrow">Demos</p>
+    <h1>See what I&rsquo;ve built.</h1>
+    <p class="demo-hero-lede">
+      Five systems, running. Each one is a short video and the code behind it.
+    </p>
+  </div>
+</section>
+
+<section class="sec demo-sec">
+  <div class="wrap">
+    <div class="demo-grid" id="demoGrid"></div>
+  </div>
+</section>
+
+<section class="sec demo-cta">
+  <div class="wrap">
+    <h2 class="big">Want the <em>full picture</em>?</h2>
+    <p class="sec-sub">Ten systems, five roles and the reasoning behind each one.</p>
+    <div class="cta-row" style="animation:none;opacity:1;margin-top:26px">
+      <a class="btn btn-primary" href="index.html#systems">See the work <span class="arr" aria-hidden="true">→</span></a>
+      <a class="btn" href="mailto:kgenga2002@gmail.com?subject=Let%27s%20talk">Email me</a>
+      <a class="btn" href="https://www.linkedin.com/in/gengak" target="_blank" rel="noopener">LinkedIn</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span>© <span id="yr"></span> Genga K, Bengaluru, India</span>
+    <span><a href="index.html">Home</a> &nbsp;·&nbsp; <a href="https://github.com/Genga28/Genga28.github.io/tree/main/demos" target="_blank" rel="noopener">Source on GitHub ↗</a></span>
+  </div>
+</footer>
+
+<div class="demo-modal" id="demo" hidden>
+  <div class="demo-bg" data-close></div>
+  <div class="demo-panel" role="dialog" aria-modal="true" aria-labelledby="demoTitle">
+    <div class="demo-head">
+      <div>
+        <p class="demo-kick" id="demoKick"></p>
+        <h3 id="demoTitle"></h3>
+      </div>
+      <button class="demo-close" data-close aria-label="Close demo">&#10005;</button>
+    </div>
+    <div class="demo-stage" id="demoStage"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/demos.js"></script>
+
+</body>
+</html>

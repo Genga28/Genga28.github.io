@@ -258,7 +258,8 @@ _SENTENCE = re.compile(r"(?<=[.!?])\s+")
 class Brain:
     """Claude when a key is present, a scripted host when it is not."""
 
-    MODEL = "claude-opus-5"
+    MODEL = os.environ.get("ARIA_MODEL") or "claude-opus-5"
+    EFFORT = os.environ.get("ARIA_EFFORT") or "low"
 
     def __init__(self) -> None:
         self.history: list[dict] = []
@@ -304,7 +305,7 @@ class Brain:
                 model=self.MODEL,
                 max_tokens=300,
                 system=SYSTEM,
-                output_config={"effort": "low"},    # it is small talk, not a proof
+                output_config={"effort": self.EFFORT},   # small talk, not a proof
                 messages=messages,
             ) as stream:
                 for piece in stream.text_stream:

@@ -3,7 +3,8 @@ Desktop RPA: open a billing portal in the browser, find and click the download
 button by looking at the screen, wait for the file to land, read the invoice
 with OCR, and write the fields into a formatted Excel workbook.
 
-    python rpa_bill_to_excel.py
+    python rpa_bill_to_excel.py                       generated invoice
+    python rpa_bill_to_excel.py --bill my_scan.png    your own document
     python rpa_bill_to_excel.py --runs 3 --no-open
 
 Nothing here talks to the page's DOM. The bot sees pixels and moves the real
@@ -245,10 +246,39 @@ def write_excel(rows: list[dict], path: Path) -> None:
 # --------------------------------------------------------------------------
 # run
 # --------------------------------------------------------------------------
-def one_run(port: int, index: int, open_browser: bool) -> dict:
-    bill, png = generate(seed=None)
+def publish_own(path: Path) -> tuple[dict, Path]:
+    """Put a real document into the portal instead of a generated one.
+
+    Copies the file into site/ and rewrites the page around it. The bot does
+    not care what the image is; OCR will read whatever is actually there.
+    """
+    import shutil
+    from make_bill import PAGE
+
+    SITE.mkdir(parents=True, exist_ok=True)
+    dest = SITE / path.name
+    if dest.resolve() != path.resolve():
+        shutil.copy2(path, dest)
+
+    bill = {
+        "bill_no": path.stem, "date": "", "patient": "", "doctor": "",
+        "hospital": "Uploaded document", "total": 0,
+    }
+    (SITE / "index.html").write_text(
+        PAGE.format(anchor=ANCHOR, png=dest.name, **bill), encoding="utf-8"
+    )
+    (SITE / "bill.json").write_text(json.dumps(bill), encoding="utf-8")
+    return bill, dest
+
+
+def one_run(port: int, index: int, open_browser: bool, own: Path | None = None) -> dict:
+    if own:
+        bill, png = publish_own(own)
+        log("input", f"using your document: {own.name}")
+    else:
+        bill, png = generate(seed=None)
+        log("generate", f"invoice {bill['bill_no']}, total INR {bill['total']:,}")
     url = f"http://127.0.0.1:{port}/?r={index}"
-    log("generate", f"invoice {bill['bill_no']}, total INR {bill['total']:,}")
 
     if open_browser:
         webbrowser.open(url)
@@ -288,7 +318,16 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--runs", type=int, default=1, help="how many invoices to process")
     ap.add_argument("--no-open", action="store_true", help="skip launching the browser")
+    ap.add_argument("--bill", metavar="FILE", help="use your own invoice image instead of a generated one")
     args = ap.parse_args()
+
+    own = None
+    if args.bill:
+        own = Path(args.bill).expanduser()
+        if not own.exists():
+            print(f"  No such file: {own}")
+            return 1
+        args.runs = 1
 
     port = free_port()
     httpd = serve(port)
@@ -299,7 +338,7 @@ def main() -> int:
         for i in range(args.runs):
             print(f"  --- invoice {i + 1} of {args.runs} " + "-" * 34)
             try:
-                rows.append(one_run(port, i, not args.no_open))
+                rows.append(one_run(port, i, not args.no_open, own))
             except Exception as exc:
                 print(f"  ! {exc}")
                 return 1

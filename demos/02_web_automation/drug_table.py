@@ -17,12 +17,14 @@ are the right call for a demo you want to run twice.
 from __future__ import annotations
 
 import argparse
+import os
 import time
 import urllib.parse
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
 import requests
+from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.chrome.options import Options
@@ -30,6 +32,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 OUT = Path(__file__).parent / "output"
 
@@ -259,7 +263,9 @@ def write_excel(drugs: list[Drug], path: Path) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--drugs", nargs="+", default=DEFAULT_DRUGS)
-    ap.add_argument("--headless", action="store_true", help="no visible window (not great for recording)")
+    ap.add_argument("--headless", action="store_true",
+                    default=bool(os.environ.get("HEADLESS")),
+                    help="no visible window (not great for recording)")
     ap.add_argument("--no-fda", action="store_true", help="skip the openFDA enrichment")
     args = ap.parse_args()
 

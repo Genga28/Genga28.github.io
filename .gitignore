@@ -11,3 +11,5 @@ demos/**/site/
 demos/**/voices/*.onnx*
 demos/**/session.db
 demos/**/uploads/
+.env
+demos/.env

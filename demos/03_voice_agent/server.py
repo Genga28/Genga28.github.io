@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import fractions
 import json
 import logging
@@ -34,9 +35,13 @@ import numpy as np
 import uvicorn
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 from aiortc.mediastreams import MediaStreamError
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+
+# demos/.env is shared by every demo and must load before pipeline reads it.
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 from pipeline import (
     FRAME_SAMPLES,
@@ -391,8 +396,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8080)
-    ap.add_argument("--whisper", default="base.en", help="tiny.en | base.en | small.en")
-    ap.add_argument("--voice", default=None, help="path to a Piper .onnx voice")
+    ap.add_argument("--whisper", default=os.environ.get("WHISPER_MODEL") or "base.en",
+                    help="tiny.en | base.en | small.en  (or WHISPER_MODEL in .env)")
+    ap.add_argument("--voice", default=os.environ.get("PIPER_VOICE") or None,
+                    help="path to a Piper .onnx voice  (or PIPER_VOICE in .env)")
     args = ap.parse_args()
 
     app.state.s = State(args.whisper, args.voice)
