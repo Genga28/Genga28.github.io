@@ -279,8 +279,10 @@ function renderPostEditor(body){
 function renderVideosTab(body){
   body.innerHTML = `
     <div class="fld"><label>Demo videos</label>
-      <small>A path like <code>assets/video/proctor.mp4</code>, or a YouTube <b>embed</b> URL
-      (<code>youtube.com/embed/ID</code>, not the <code>/watch?v=</code> one). Leave blank for no player.</small></div>
+      <small>Paste a normal share link and it is converted automatically: Google Drive,
+      YouTube, Vimeo or Loom all work. A local path like <code>assets/video/proctor.mp4</code>
+      works too. Leave blank for no player.<br>
+      <b>Drive only:</b> set the file to <i>Anyone with the link</i> or viewers get a sign-in page.</small></div>
     ${SITE.cases.map(c => `
       <div class="fld">
         <label for="vid-${c.id}">${c.title}</label>

@@ -9,6 +9,54 @@ const COLORS = {
   cyan:"#5FC9F0", amber:"#F5BE8B", pink:"#F49BB8", green:"#8FE39A"
 };
 
+/* ------------------------------------------------------------------
+   Turn whatever you paste into something a player can actually load.
+
+   A Google Drive "share" link opens a Drive page, not a video, so it
+   will not play in an <iframe> until /view is swapped for /preview.
+   Same story for a YouTube watch URL, a Vimeo page and a Loom share.
+   Paste the normal link from the address bar; this sorts it out.
+
+   Returns { kind: "file" | "frame", url }.
+   ------------------------------------------------------------------ */
+function embedUrl(src){
+  src = (src || "").trim();
+  if(!src) return null;
+  if(!/^https?:\/\//i.test(src)) return { kind:"file", url:src };
+
+  let m;
+
+  // Google Drive: /file/d/ID/..., ?id=ID, /open?id=ID
+  if(/drive\.google\.com/i.test(src)){
+    m = src.match(/\/file\/d\/([A-Za-z0-9_-]{10,})/) || src.match(/[?&]id=([A-Za-z0-9_-]{10,})/);
+    if(m) return { kind:"frame", url:`https://drive.google.com/file/d/${m[1]}/preview` };
+  }
+
+  // YouTube: watch?v=ID, youtu.be/ID, /shorts/ID, already /embed/
+  if(/youtube\.com|youtu\.be/i.test(src)){
+    m = src.match(/[?&]v=([A-Za-z0-9_-]{6,})/)
+      || src.match(/youtu\.be\/([A-Za-z0-9_-]{6,})/)
+      || src.match(/\/(?:embed|shorts)\/([A-Za-z0-9_-]{6,})/);
+    if(m) return { kind:"frame", url:`https://www.youtube.com/embed/${m[1]}?rel=0&autoplay=1` };
+  }
+
+  // Vimeo
+  if(/vimeo\.com/i.test(src)){
+    m = src.match(/vimeo\.com\/(?:video\/)?(\d{6,})/);
+    if(m) return { kind:"frame", url:`https://player.vimeo.com/video/${m[1]}?autoplay=1` };
+  }
+
+  // Loom
+  if(/loom\.com/i.test(src)){
+    m = src.match(/loom\.com\/(?:share|embed)\/([A-Za-z0-9]{10,})/);
+    if(m) return { kind:"frame", url:`https://www.loom.com/embed/${m[1]}` };
+  }
+
+  // A direct .mp4/.webm on a CDN can be played natively; anything else, frame it.
+  if(/\.(mp4|webm|ogg|mov)(\?|$)/i.test(src)) return { kind:"file", url:src };
+  return { kind:"frame", url:src };
+}
+
 const SECTION_COLOR = {
   "#top":COLORS.blue, "#work":COLORS.teal, "#systems":COLORS.violet,
   "#stack":COLORS.cyan, "#writing":COLORS.amber, "#about":COLORS.pink, "#contact":COLORS.green
@@ -20,7 +68,7 @@ const DEFAULTS = {
     kicker:"Applied AI Engineer",
     location:"Bengaluru, India",
     photo:"assets/img/genga.jpg",
-    resume:"GENGA_K_RESUME.pdf",
+    resume:"assets/pdfs/GENGA_K_RESUME.pdf",
     available:true,
     availableText:"Open to AI / ML engineering roles",
     headline:["I build AI","systems that hold","up in production."],

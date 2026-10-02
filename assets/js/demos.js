@@ -36,10 +36,11 @@ document.documentElement.classList.add("js");
 /* ---------------------------------------------------------------- render */
 function card(d, i){
   const src = (SITE.videos || {})[d.id];
-  const poster = src
-    ? (/^https?:\/\//.test(src)
+  const e = src ? embedUrl(src) : null;
+  const poster = e
+    ? (e.kind === "frame"
         ? `<div class="dc-play"><span class="play-big" aria-hidden="true"></span><span>Watch the demo</span></div>`
-        : `<video src="${src}" muted playsinline preload="metadata"></video>
+        : `<video src="${e.url}" muted playsinline preload="metadata"></video>
            <div class="dc-play"><span class="play-big" aria-hidden="true"></span><span>Watch the demo</span></div>`)
     : `<div class="dc-soon">
          <div class="dc-flow">${d.flow.map(s => `<span>${s}</span>`).join('<i aria-hidden="true"></i>')}</div>
@@ -154,9 +155,10 @@ function openDemo(id){
   modal.style.setProperty("--c", d.c);
   $("#demoTitle").textContent = d.title;
   $("#demoKick").textContent = d.tag;
-  $("#demoStage").innerHTML = /^https?:\/\//.test(src)
-    ? `<iframe src="${src}${src.includes("?") ? "&" : "?"}autoplay=1" title="${d.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
-    : `<video src="${src}" controls autoplay playsinline></video>`;
+  const e = embedUrl(src);
+  $("#demoStage").innerHTML = e.kind === "frame"
+    ? `<iframe src="${e.url}" title="${d.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
+    : `<video src="${e.url}" controls autoplay playsinline></video>`;
 
   modal.hidden = false;
   requestAnimationFrame(() => modal.classList.add("on"));

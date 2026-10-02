@@ -476,9 +476,10 @@ function openDemo(id){
   modal.style.setProperty("--c", c.c);
   $("#demoTitle").textContent = c.title;
   $("#demoKick").textContent = `${c.org} · ${c.kind}`;
-  $("#demoStage").innerHTML = /^https?:\/\//.test(src)
-    ? `<iframe src="${src}${src.includes("?") ? "&" : "?"}autoplay=1" title="${c.title} demo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
-    : `<video src="${src}" controls autoplay playsinline></video>`;
+  const e = embedUrl(src);
+  $("#demoStage").innerHTML = e.kind === "frame"
+    ? `<iframe src="${e.url}" title="${c.title} demo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
+    : `<video src="${e.url}" controls autoplay playsinline></video>`;
 
   modal.hidden = false;
   requestAnimationFrame(() => modal.classList.add("on"));
