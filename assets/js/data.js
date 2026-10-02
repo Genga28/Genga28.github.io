@@ -205,7 +205,8 @@ const DEFAULTS = {
       approach:"Roofline decode model plus a KV-cache concurrency model, validated under vLLM.",
       result:"The smaller model served five times the traffic at equal latency.",
       flow:["Roofline","KV cache","vLLM","Profiler","AWQ / FP8","CUDA graphs"], hot:[0,1],
-      tech:["vLLM","torch.profiler","Transformer internals","AWQ","FP8","PyTorch"]
+      tech:["vLLM","torch.profiler","Transformer internals","AWQ","FP8","PyTorch"],
+      link:"https://github.com/Genga28/Genga28.github.io/blob/main/demos/independent/P2_LLM_Inference_Profiling.ipynb"
     },
     {
       id:"specialisation", c:COLORS.green, org:"Independent", year:"2025", kind:"Fine-tuning",
@@ -216,7 +217,8 @@ const DEFAULTS = {
       approach:"QLoRA, then three eval tiers: rules, a validated LLM judge, and a paired significance test.",
       result:"A build that fails on a real regression instead of a moved average.",
       flow:["Base","QLoRA","Rules","Judge","McNemar","CI gate"], hot:[4,5],
-      tech:["QLoRA","PEFT","TRL","LLM-as-judge","Cohen's kappa","McNemar"]
+      tech:["QLoRA","PEFT","TRL","LLM-as-judge","Cohen's kappa","McNemar"],
+      link:"https://github.com/Genga28/Genga28.github.io/blob/main/demos/independent/P3_QLoRA_Eval_Harness.ipynb"
     },
     {
       id:"outbreak", c:COLORS.blue, org:"Academic", year:"2024", kind:"Deep learning",
