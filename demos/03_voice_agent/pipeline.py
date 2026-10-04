@@ -56,8 +56,8 @@ class Segmenter:
 
     def __init__(
         self,
-        aggressiveness: int = 2,
-        start_frames: int = 5,       # 100 ms of speech to open
+        aggressiveness: int = 1,     # permissive: a missed onset costs a whole turn
+        start_frames: int = 4,       # 80 ms of speech to open
         end_frames: int = 24,        # 480 ms of silence to close: snappy but
                                      # still survives a mid-sentence breath
         max_ms: int = 20_000,
@@ -152,12 +152,19 @@ DECODE = dict(
     compression_ratio_threshold=2.0,
 )
 
-# Belt and braces. These are whisper's favourite things to invent out of
-# nothing; a real reply this short carries no information anyway, so dropping
-# them costs the conversation nothing.
-GHOSTS = {"you", "thank you", "thanks for watching", "thank you.", "bye",
-          "the", "uh", "um", "mm", "hmm", "yeah", ".", "!", "?"}
-MIN_RMS = 0.006     # below this the clip is quieter than normal room tone
+# Whisper's favourite things to invent out of nothing. This list only
+# applies to a result the model was *also* unsure about: "Yeah" is both the
+# classic hallucination and a perfectly normal answer, and a blocklist that
+# cannot tell them apart throws away half of what someone says. Confidence
+# is what separates them.
+GHOSTS = {"you", "thank you", "thanks for watching", "bye", "the",
+          "uh", "um", "mm", "hmm", "yeah", ".", "!", "?", ",", "-"}
+GHOST_LP = -0.75    # only drop a ghost word when the model was unsure too
+
+# Low enough to pass quiet speech on a laptop microphone held at arm's
+# length. The earlier 0.006 was set from synthesised audio at full scale and
+# silently swallowed real sentences spoken at a normal volume.
+MIN_RMS = 0.0022
 
 
 class Transcriber:
@@ -188,13 +195,16 @@ class Transcriber:
         if not text:
             return ""
 
-        # A low mean log probability on a very short result is the signature
+        # A poor mean log probability on a very short result is the signature
         # of a guess. Long results are left alone: a confident model being
-        # unsure about one word in twenty is normal.
+        # unsure about one word in twenty is normal. The bar is deliberately
+        # low, because rejecting a real "no, not really" is a worse failure
+        # than letting one invented word through.
         mean_lp = float(np.mean([x.avg_logprob for x in segments]))
-        if len(text.split()) <= 3 and mean_lp < -0.9:
+        short = len(text.split()) <= 3
+        if short and mean_lp < -1.05:
             return ""
-        if text.strip().strip(".,!?").lower() in GHOSTS:
+        if short and mean_lp < GHOST_LP and text.strip().strip(".,!?").lower() in GHOSTS:
             return ""
 
         # A partial is a progress indicator, not a transcript. It is allowed

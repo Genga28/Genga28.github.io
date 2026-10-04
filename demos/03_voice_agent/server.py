@@ -168,6 +168,8 @@ class Session:
         self._partial_at = 0.0
         self._partial_busy = False
         self._partial_text = ""
+        self._queued: np.ndarray | None = None
+        self._cancel = False
 
         self.state.conn.execute(
             "INSERT OR REPLACE INTO sessions VALUES (?,?,?,?)",
@@ -209,15 +211,29 @@ class Session:
         while len(self._tail) >= FRAME_SAMPLES:
             frame, self._tail = self._tail[:FRAME_SAMPLES], self._tail[FRAME_SAMPLES:]
 
-            # Barge-in: the moment the user starts talking over the agent, stop.
-            if self.seg.active and self.voice.speaking and not self._busy:
+            # Barge-in. This used to be gated on `not self._busy`, which it can
+            # never satisfy: voice.speaking is only true while a turn is in
+            # flight, and a turn in flight is exactly what _busy means. So
+            # barge-in never fired once, and talking over Aria did nothing.
+            if self.seg.active and self.voice.speaking:
                 await self.voice.flush()
+                self._cancel = True
                 await self.emit("state", state="listening", note="barge-in")
 
             utterance = self.seg.push(frame)
-            if utterance is not None and not self._busy:
+            if utterance is not None:
                 self._partial_text = ""
-                asyncio.create_task(self._turn(utterance))
+                if self._busy:
+                    # Hold it, do not bin it. Dropping whatever someone says
+                    # while the agent is still talking is most of what makes
+                    # an agent feel like it is ignoring you, and it is
+                    # silent: nothing in the log says a sentence was lost.
+                    self._queued = utterance
+                    self._cancel = True
+                    log.info("[%s] queued %0.1fs spoken over the agent",
+                             self.sid[:8], len(utterance) / SAMPLE_RATE)
+                else:
+                    asyncio.create_task(self._turn(utterance))
             elif self.seg.active and not self._busy:
                 self._maybe_partial()
 
@@ -281,6 +297,9 @@ class Session:
             first_audio_ms: int | None = None
 
             for sentence in self.brain.reply(text):
+                if self._cancel:
+                    log.info("[%s] cut off mid-reply", self.sid[:8])
+                    break
                 spoken.append(sentence)
                 await self.emit("caption", who="agent", text=" ".join(spoken), final=False)
                 clip = await loop.run_in_executor(None, self.state.speaker.say, sentence)
@@ -296,7 +315,7 @@ class Session:
             await self.emit("caption", who="agent", text=reply, final=True)
             self.record("agent", reply, first_audio_ms)
 
-            while await self.voice.pending() > 0:
+            while await self.voice.pending() > 0 and not self._cancel:
                 await asyncio.sleep(0.1)
             await self.emit("state", state="listening")
         except Exception as exc:
@@ -304,6 +323,11 @@ class Session:
             await self.emit("state", state="listening", note=str(exc))
         finally:
             self._busy = False
+            self._cancel = False
+            # Whatever was said over the top of that answer is the next turn.
+            queued, self._queued = self._queued, None
+            if queued is not None:
+                asyncio.create_task(self._turn(queued))
 
     async def greet(self) -> None:
         loop = asyncio.get_running_loop()
@@ -357,6 +381,20 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+# A browser will happily keep serving the app.js it fetched an hour ago, and
+# StaticFiles's ETag does not stop a module that is already in the memory
+# cache. During a demo that means editing the UI, restarting the server, and
+# watching the old build come back with no error anywhere to explain it.
+# Nothing here is worth caching: it is all local and it is all being changed.
+@app.middleware("http")
+async def no_store(request: Request, call_next):
+    response = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+    return response
 
 
 @app.get("/")
@@ -446,7 +484,12 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8080)
-    ap.add_argument("--whisper", default=os.environ.get("WHISPER_MODEL") or "base.en",
+    # small.en by default. base.en measured identical on clean synthesised
+    # speech and 2.7x faster, which is what it was first chosen on, but that
+    # audio was not representative: on a real microphone and a real accent it
+    # drops words. small.en still runs at about 0.57x real time, so there is
+    # headroom. WHISPER_MODEL=base.en in demos/.env goes back.
+    ap.add_argument("--whisper", default=os.environ.get("WHISPER_MODEL") or "small.en",
                     help="tiny.en | base.en | small.en  (or WHISPER_MODEL in .env)")
     ap.add_argument("--voice", default=os.environ.get("PIPER_VOICE") or None,
                     help="path to a Piper .onnx voice  (or PIPER_VOICE in .env)")

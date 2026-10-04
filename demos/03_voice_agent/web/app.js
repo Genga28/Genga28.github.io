@@ -488,7 +488,7 @@ function setState(s, note) {
 }
 
 function showCaption(el, text, animateWords) {
-  if (!text) { el.classList.remove("on"); return; }
+  if (!text) { el.classList.remove("on"); el._words = null; el.textContent = ""; return; }
   if (animateWords) {
     el.innerHTML = text
       .split(/\s+/)
@@ -497,6 +497,36 @@ function showCaption(el, text, animateWords) {
   } else {
     el.textContent = text;
   }
+  el._words = null;
+  el.classList.add("on");
+}
+
+/* Grow the line a word at a time instead of replacing it.
+
+   Each partial is a fresh decode of a longer buffer, so the naive version
+   rewrites the whole sentence every 600 ms: the text flickers and the words
+   you already read jump about. Keeping the common prefix and appending only
+   what is new means settled words stay put and the line reads as filling in
+   as you speak. A re-decode that genuinely changes an earlier word still
+   works, because the diff restarts at the first word that differs. */
+function growCaption(el, text) {
+  if (!text) { el.classList.remove("on"); el._words = null; el.textContent = ""; return; }
+  const words = text.split(/\s+/).filter(Boolean);
+  const prev = el._words || [];
+
+  let same = 0;
+  while (same < words.length && same < prev.length && words[same] === prev[same]) same++;
+
+  if (same === 0) el.textContent = "";
+  while (el.childNodes.length > same) el.removeChild(el.lastChild);
+
+  for (let i = same; i < words.length; i++) {
+    const span = document.createElement("span");
+    span.className = "nw";
+    span.textContent = (i ? " " : "") + words[i];
+    el.appendChild(span);
+  }
+  el._words = words;
   el.classList.add("on");
 }
 
@@ -576,7 +606,7 @@ async function join() {
     if (m.type === "caption") {
       if (m.who === "user") {
         els.capUser.classList.toggle("live", !m.final);
-        showCaption(els.capUser, m.text, false);
+        growCaption(els.capUser, m.text);
       } else {
         showCaption(els.capAgent, m.text, m.final);
       }
@@ -633,7 +663,7 @@ function leave() {
   analyser = null;              // the jaw falls shut on its own from here
   els.pip.classList.remove("on");
   els.leave.hidden = true;
-  showCaption(els.capUser, "", false);
+  growCaption(els.capUser, "");
   showCaption(els.capAgent, "", false);
   els.capUser.classList.remove("live");
   setState("idle");

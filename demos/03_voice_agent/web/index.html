@@ -139,6 +139,12 @@ body.speaking  .statepill .dot{ background:var(--teal); box-shadow:0 0 14px var(
 /* A partial is a re-decode of a half-spoken sentence and its last words will
    change. Showing it in the same weight as a settled line makes the UI look
    like it keeps correcting itself, so it reads as provisional instead. */
+/* Its own keyframe: `wordin` only declares a `to`, and relies on .w having
+   set the start state in CSS. With no `from` these spans would animate from
+   their computed style, which is already the finished one, and nothing would
+   appear to happen. */
+.cap.user .nw{ display:inline; animation:newword .24s var(--ease) both; }
+@keyframes newword{ from{ opacity:0; filter:blur(2px); } to{ opacity:1; filter:none; } }
 .cap.user.live{ color:var(--txt-3); font-style:italic; }
 .cap.user.live::after{
   content:""; display:inline-block; width:2px; height:1em; margin-left:5px;
