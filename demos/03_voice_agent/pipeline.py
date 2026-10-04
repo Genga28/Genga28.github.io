@@ -519,41 +519,96 @@ _SENTENCE = re.compile(r"(?<=[.!?])\s+")
 
 
 class Brain:
-    """Claude when a key is present, a scripted host when it is not."""
+    """The reply, as two streams out of one.
 
-    MODEL = os.environ.get("ARIA_MODEL") or "claude-opus-5"
+    Speech can only begin on a whole sentence, but a caption should not wait
+    for one: at conversational speed the gap between the first word arriving
+    and the full stop is most of a second, and a caption that lands all at
+    once at the end of it reads as lag. So `reply` yields ("text", all of it
+    so far) as the words arrive and ("say", one sentence) when there is
+    something the voice can start on.
+
+    Two providers, because the only thing that matters for this job is how
+    fast the first sentence appears. Measured on this machine, time to first
+    token for the same prompt:
+
+        gemini-2.5-flash-lite   0.80s
+        claude-haiku-4-5        1.13s
+        gemini-2.5-flash        1.24s
+        claude-opus-5           1.53s
+
+    None of them is the bottleneck; recognising the speech costs more than
+    any of them. Opus writes the best small talk of the four and is still a
+    perfectly good choice at a second and a half, which is why the gap is
+    worth knowing rather than worth agonising over.
+    """
+
+    PROVIDER = (os.environ.get("ARIA_PROVIDER") or "").strip().lower()
+    CLAUDE_MODEL = os.environ.get("ARIA_MODEL") or "claude-haiku-4-5-20251001"
+    GEMINI_MODEL = os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash"
     EFFORT = os.environ.get("ARIA_EFFORT") or "low"
 
     def __init__(self, context: "Context | None" = None) -> None:
         self.history: list[dict] = []
         self._turn = 0
         self._client = None
+        self.provider = "scripted"
+        self.model = ""
         self.context = context or Context()
 
-        if os.environ.get("ANTHROPIC_API_KEY"):
-            try:
+        order = ([self.PROVIDER] if self.PROVIDER else
+                 ["gemini", "claude"] if os.environ.get("GOOGLE_API_KEY") else
+                 ["claude", "gemini"])
+        for name in order:
+            if self._start(name):
+                break
+        if self._client is None:
+            log.info("brain: scripted (set ANTHROPIC_API_KEY or GOOGLE_API_KEY "
+                     "for the real thing)")
+
+    def _start(self, name: str) -> bool:
+        try:
+            if name == "claude" and os.environ.get("ANTHROPIC_API_KEY"):
                 import anthropic
                 self._client = anthropic.Anthropic()
-                log.info("brain: %s", self.MODEL)
-            except Exception as exc:
-                log.warning("anthropic unavailable (%s), using the scripted host", exc)
-        if self._client is None:
-            log.info("brain: scripted (set ANTHROPIC_API_KEY for the real thing)")
+                self.provider, self.model = "claude", self.CLAUDE_MODEL
+            elif name == "gemini" and os.environ.get("GOOGLE_API_KEY"):
+                from google import genai
+                self._client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
+                self.provider, self.model = "gemini", self.GEMINI_MODEL
+            else:
+                return False
+        except Exception as exc:
+            log.warning("%s unavailable (%s)", name, exc)
+            self._client = None
+            return False
+        log.info("brain: %s", self.model)
+        return True
 
     @property
     def kind(self) -> str:
-        return "claude" if self._client else "scripted"
+        return self.provider
+
+    def _effort(self) -> dict:
+        """output_config is a 4.6-and-later thing.
+
+        Sent to Haiku 4.5 it is a 400, and the agent then apologises for
+        losing its train of thought on every single turn instead.
+        """
+        modern = any(k in self.model for k in
+                     ("opus-5", "sonnet-5", "fable-5", "opus-4-8", "opus-4-7",
+                      "opus-4-6", "sonnet-4-6"))
+        return {"output_config": {"effort": self.EFFORT}} if modern else {}
 
     def greeting(self) -> str:
         if self._client is None:
             return SCRIPT[0]
-        return " ".join(self.reply(
-            "(they just joined the call and have not said anything yet. "
-            "Say hello and ask how their day is going.)", greeting=True))
+        opener = ("(they just joined the call and have not said anything yet. "
+                  "Say hello and ask how their day is going.)")
+        return " ".join(t for k, t in self.reply(opener, greeting=True) if k == "say")
 
-    def reply(self, user_text: str, greeting: bool = False) -> Iterator[str]:
-        """Yields the reply sentence by sentence so speech starts before the
-        model has finished writing. That is most of the perceived latency."""
+    # ---------------- the stream ----------------
+    def reply(self, user_text: str, greeting: bool = False) -> Iterator[tuple[str, str]]:
         if not greeting:
             self.history.append({"role": "user", "content": user_text})
 
@@ -561,42 +616,68 @@ class Brain:
             self._turn += 1
             text = SCRIPT[min(self._turn, len(SCRIPT) - 1)]
             self.history.append({"role": "assistant", "content": text})
-            yield text
+            yield ("text", text)
+            yield ("say", text)
             return
 
         messages = self.history or [{"role": "user", "content": user_text}]
-        buffer, full = "", []
+        system = f"{SYSTEM}\n\n{self.context.line()}"
+        pieces = (self._claude(system, messages) if self.provider == "claude"
+                  else self._gemini(system, messages))
+
+        buffer, said, full = "", "", []
         try:
-            with self._client.messages.stream(
-                model=self.MODEL,
-                max_tokens=300,
-                # The context goes in the system block, not the transcript,
-                # so it stays true for the whole call and the model never
-                # mistakes it for something the person said.
-                system=f"{SYSTEM}\n\n{self.context.line()}",
-                output_config={"effort": self.EFFORT},   # small talk, not a proof
-                messages=messages,
-            ) as stream:
-                for piece in stream.text_stream:
-                    buffer += piece
+            for piece in pieces:
+                buffer += piece
+                said += piece
+                yield ("text", speakable(said))
+                parts = _SENTENCE.split(buffer)
+                while len(parts) > 1:
+                    sentence = speakable(parts.pop(0))
+                    if sentence:
+                        full.append(sentence)
+                        yield ("say", sentence)
+                    buffer = " ".join(parts)
                     parts = _SENTENCE.split(buffer)
-                    while len(parts) > 1:
-                        sentence = speakable(parts.pop(0))
-                        if sentence:
-                            full.append(sentence)
-                            yield sentence
-                        buffer = " ".join(parts)
-                        parts = _SENTENCE.split(buffer)
             tail = speakable(buffer)
             if tail:
                 full.append(tail)
-                yield tail
+                yield ("say", tail)
         except Exception as exc:
-            log.error("claude call failed: %s", exc)
-            yield "Sorry, I lost my train of thought there. What were you saying?"
+            log.error("%s call failed: %s", self.provider, exc)
+            lost = "Sorry, I lost my train of thought there. What were you saying?"
+            yield ("text", lost)
+            yield ("say", lost)
             return
 
         self.history.append({"role": "assistant", "content": " ".join(full)})
+
+    def _claude(self, system: str, messages: list[dict]) -> Iterator[str]:
+        with self._client.messages.stream(
+            model=self.model, max_tokens=300, system=system,
+            messages=messages, **self._effort(),
+        ) as stream:
+            yield from stream.text_stream
+
+    def _gemini(self, system: str, messages: list[dict]) -> Iterator[str]:
+        from google.genai import types
+
+        cfg = types.GenerateContentConfig(
+            system_instruction=system, max_output_tokens=300,
+            # Thinking is the whole latency budget for a reply this short,
+            # and there is nothing here to think about.
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        )
+        contents = [
+            types.Content(role="model" if m["role"] == "assistant" else "user",
+                          parts=[types.Part(text=m["content"])])
+            for m in messages
+        ]
+        for chunk in self._client.models.generate_content_stream(
+            model=self.model, contents=contents, config=cfg,
+        ):
+            if chunk.text:
+                yield chunk.text
 
 
 # ==========================================================================

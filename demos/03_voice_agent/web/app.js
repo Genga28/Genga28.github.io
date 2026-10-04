@@ -554,8 +554,9 @@ function growCaption(el, text) {
 
 function badges(info) {
   els.badges.innerHTML = [
-    ["brain", info.brain === "claude" ? "Claude Opus 5" : "scripted"],
-    ["stt", "faster-whisper"],
+    // whatever is actually answering, rather than a guess from the provider
+    ["brain", info.model || info.brain || "scripted"],
+    ["stt", info.stt || "faster-whisper"],
     ["tts", info.tts || "-"],
     ["room", "aiortc · local"],
   ]
@@ -629,8 +630,13 @@ async function join() {
       if (m.who === "user") {
         els.capUser.classList.toggle("live", !m.final);
         growCaption(els.capUser, m.text);
+      } else if (m.final) {
+        // the settled line, with the staggered reveal
+        showCaption(els.capAgent, m.text, true);
       } else {
-        showCaption(els.capAgent, m.text, m.final);
+        // mid-stream: grow it, so her words appear as she writes them
+        // rather than a sentence at a time
+        growCaption(els.capAgent, m.text);
       }
     }
   };

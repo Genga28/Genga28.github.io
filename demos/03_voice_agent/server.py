@@ -68,7 +68,7 @@ OUT_FRAME = OUT_RATE * 20 // 1000      # 20 ms
 # How often to re-decode the half-spoken utterance for the live caption.
 # Fast enough that the words appear while they are still talking, slow
 # enough that the partials never crowd out the real turn behind them.
-PARTIAL_EVERY = 0.55
+PARTIAL_EVERY = 0.4
 
 # How long someone has to keep talking over the agent before it counts as an
 # interruption rather than the agent hearing itself. On headphones this could
@@ -81,7 +81,7 @@ BARGE_RMS = 0.02
 # The tail of the utterance a live caption is decoded from. Short, because
 # the cost scales with it and a caption only needs the words being said now.
 # The final decode still sees the whole utterance.
-PARTIAL_WINDOW = 3.5
+PARTIAL_WINDOW = 2.0
 
 
 # ==========================================================================
@@ -311,6 +311,30 @@ class Session:
         finally:
             self._partial_busy = False
 
+    async def _stream(self, fn, *args):
+        """Run a blocking generator on a thread, yield its items here."""
+        loop = asyncio.get_running_loop()
+        q: asyncio.Queue = asyncio.Queue()
+        DONE = object()
+
+        def pump():
+            try:
+                for item in fn(*args):
+                    loop.call_soon_threadsafe(q.put_nowait, item)
+            except Exception as exc:          # noqa: BLE001 - reported below
+                loop.call_soon_threadsafe(q.put_nowait, exc)
+            finally:
+                loop.call_soon_threadsafe(q.put_nowait, DONE)
+
+        loop.run_in_executor(None, pump)
+        while True:
+            item = await q.get()
+            if item is DONE:
+                return
+            if isinstance(item, Exception):
+                raise item
+            yield item
+
     # ---------- one exchange ----------
     async def _turn(self, audio: np.ndarray) -> None:
         self._busy = True
@@ -336,18 +360,27 @@ class Session:
             spoken: list[str] = []
             first_audio_ms: int | None = None
 
-            for sentence in self.brain.reply(text):
+            # The brain is a blocking generator doing network I/O. Iterated
+            # straight from here it stalls the whole event loop between
+            # chunks, which also stalls the 20 ms pacing of the outbound
+            # audio track. Run it on a thread and take the events through a
+            # queue, so captions, speech and the audio clock all keep moving.
+            async for kind, payload in self._stream(self.brain.reply, text):
                 if self._cancel:
                     log.info("[%s] cut off mid-reply", self.sid[:8])
                     break
-                spoken.append(sentence)
-                await self.emit("caption", who="agent", text=" ".join(spoken), final=False)
-                clip = await loop.run_in_executor(None, self.state.speaker.say, sentence)
+                if kind == "text":
+                    await self.emit("caption", who="agent", text=payload, final=False)
+                    continue
+                spoken.append(payload)
+                clip = await loop.run_in_executor(None, self.state.speaker.say, payload)
                 if clip is None:
                     continue
                 if first_audio_ms is None:
                     first_audio_ms = int((time.time() - t0) * 1000)
                     await self.emit("state", state="speaking")
+                # push is buffered and returns at once, so the next sentence
+                # is already being synthesised while this one plays.
                 await self.voice.push(resample_i16(clip.pcm, clip.sample_rate, OUT_RATE))
 
             reply = " ".join(spoken)
@@ -413,7 +446,19 @@ class State:
         # second base.en costs about 150 MB and removes the contention. The
         # partial is throwaway text, so it always uses the fast model even
         # when the final one is set to something heavier.
-        self.stt_fast = self.stt if model == "base.en" else Transcriber("base.en")
+        # tiny.en, not base.en. On the 2s window a live caption decodes,
+        # tiny.en returned the same text in 0.52s against base.en's 0.97s.
+        # A partial is replaced by the final decode a moment later, so it
+        # can afford to be the rough one; what it cannot afford is to be
+        # late, because a caption that trails your voice by a second is
+        # worse than no caption.
+        self.stt_fast = Transcriber("tiny.en")
+        self.model_name = model
+        # Probed once at boot. A health check used to construct a Brain,
+        # which now means building a client and re-running provider
+        # selection on every single request.
+        probe = Brain()
+        self.brain_kind, self.brain_model = probe.kind, probe.model
         self.speaker = Speaker(voice)
         self.sessions: dict[str, Session] = {}
         self.pcs: set[RTCPeerConnection] = set()
@@ -479,7 +524,8 @@ async def index():
 @app.get("/api/health")
 async def health():
     s: State = app.state.s
-    return {"brain": Brain().kind, "tts": s.speaker.engine, "stt": "faster-whisper", "sessions": len(s.sessions)}
+    return {"brain": s.brain_kind, "model": s.brain_model, "tts": s.speaker.engine,
+            "stt": f"faster-whisper/{s.model_name}", "sessions": len(s.sessions)}
 
 
 @app.get("/api/transcript/{sid}")
@@ -543,7 +589,8 @@ async def ws(socket: WebSocket, sid: str):
 
     session.sockets.add(socket)
     await socket.send_text(json.dumps({
-        "type": "ready", "brain": session.brain.kind, "tts": s.speaker.engine, "session": sid,
+        "type": "ready", "brain": session.brain.kind, "model": session.brain.model,
+        "stt": f"faster-whisper/{s.model_name}", "tts": s.speaker.engine, "session": sid,
     }))
     try:
         while True:
@@ -579,7 +626,8 @@ def main() -> int:
     app.mount("/static", StaticFiles(directory=WEB), name="static")
 
     print(f"\n  Room ready at http://{args.host}:{args.port}")
-    print(f"  stt faster-whisper/{args.whisper}   tts {app.state.s.speaker.engine}   brain {Brain().kind}\n")
+    st = app.state.s
+    print(f"  stt faster-whisper/{args.whisper}   tts {st.speaker.engine}   brain {st.brain_model or st.brain_kind}\n")
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
     return 0
 
