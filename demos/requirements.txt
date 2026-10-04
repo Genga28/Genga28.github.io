@@ -10,6 +10,7 @@ requests==2.32.3
 # --- 01 desktop RPA -----------------------------------------------------
 pyautogui==0.9.54
 pillow==10.4.0
+pypdfium2==5.13.0          # PDF to image, pip wheel, no Poppler
 pytesseract==0.3.13          # needs the Tesseract binary; optional, has a fallback
 
 # --- 02 web automation --------------------------------------------------

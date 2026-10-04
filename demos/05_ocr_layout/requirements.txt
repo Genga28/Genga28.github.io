@@ -5,6 +5,7 @@ fastapi==0.115.0
 uvicorn[standard]==0.30.6
 python-multipart==0.0.12
 pillow==10.4.0
+pypdfium2==5.13.0           # PDF rasterising, no external binary
 numpy<2
 
 # Primary engine

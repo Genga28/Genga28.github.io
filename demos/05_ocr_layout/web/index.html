@@ -63,6 +63,17 @@ main{ position:relative; z-index:2; padding:0 34px 40px; display:grid; grid-temp
 .pagebox{ position:relative; max-width:100%; max-height:100%; }
 .pagebox img{ display:block; width:100%; height:100%; }
 .pagebox svg{ position:absolute; inset:0; width:100%; height:100%; }
+.pager{ display:flex; align-items:center; justify-content:center; gap:10px; padding:11px 20px;
+        border-top:1px solid var(--line); background:var(--bg-2); font-size:14px; }
+.pager button{ width:34px; height:34px; border:1px solid var(--line-2); border-radius:9px; background:var(--paper);
+               line-height:1; transition:border-color .3s, color .3s, transform .3s var(--ease); }
+.pager button:hover:not(:disabled){ border-color:var(--blue); color:var(--blue); transform:translateY(-1px); }
+.pager button:disabled{ opacity:.35; cursor:default; }
+.pager .of{ color:var(--txt-2); font-variant-numeric:tabular-nums; min-width:112px; text-align:center; }
+.pager input{ width:52px; padding:6px 8px; text-align:center; border:1px solid var(--line-2); border-radius:8px;
+              font:inherit; font-variant-numeric:tabular-nums; }
+.pager a{ margin-left:8px; font-size:13.5px; color:var(--teal); text-decoration:none; border-bottom:1px solid transparent; }
+.pager a:hover{ border-bottom-color:var(--teal); }
 .a4tag{ position:absolute; right:10px; bottom:8px; font-size:11px; color:var(--txt-3); letter-spacing:.04em; z-index:3; }
 .bx{ fill:rgba(37,99,235,.08); stroke:var(--blue); stroke-width:1.1; opacity:0; transform-box:fill-box; transform-origin:center; animation:pop .5s var(--ease) forwards; }
 .bx.low{ stroke:var(--amber); fill:rgba(194,116,10,.10); }
@@ -151,14 +162,14 @@ footer{ position:relative; z-index:2; padding:0 34px 40px; color:var(--txt-3); f
   </div>
   <div class="tools">
     <button class="btn" id="sampleBtn">Generate a hard page</button>
-    <button class="btn primary" id="pickBtn">Upload a document</button>
-    <input type="file" id="file" accept="image/*" hidden>
+    <button class="btn primary" id="pickBtn">Upload image or PDF</button>
+    <input type="file" id="file" accept="image/*,application/pdf,.pdf" hidden>
   </div>
 </header>
 
 <div class="drop" id="drop">
-  <b>Drop an image, or press Ctrl+V to paste one</b>
-  <span>Win+Shift+S snips any region. Or press <em>Generate a hard page</em> for a two-column invoice that breaks reading-order OCR.</span>
+  <b>Drop a PDF or an image, or press Ctrl+V to paste one</b>
+  <span>Multi-page PDFs get a page selector. Win+Shift+S snips any region. Or press <em>Generate a hard page</em> for a two-column invoice that breaks reading-order OCR.</span>
 </div>
 
 <main>
@@ -174,6 +185,15 @@ footer{ position:relative; z-index:2; padding:0 34px 40px; color:var(--txt-3); f
         <span class="a4tag" id="a4tag"></span>
         <div class="scanner" aria-hidden="true"></div>
       </div>
+    </div>
+    <div class="pager" id="pager" hidden>
+      <button id="pFirst" title="First page">&#8676;</button>
+      <button id="pPrev" title="Previous page">&#8249;</button>
+      <input id="pNum" type="number" min="1" value="1" aria-label="Page number">
+      <span class="of" id="pOf"></span>
+      <button id="pNext" title="Next page">&#8250;</button>
+      <button id="pLast" title="Last page">&#8677;</button>
+      <a id="pZip" href="#">Download all pages as PNG</a>
     </div>
     <div class="legend">
       <span><i style="background:var(--blue)"></i>confident</span>
@@ -227,7 +247,9 @@ const $ = s => document.querySelector(s);
 const els = {
   file:$("#file"), pick:$("#pickBtn"), sample:$("#sampleBtn"), drop:$("#drop"),
   stage:$("#stage"), page:$("#page"), svg:$("#overlay"), empty:$("#stageEmpty"),
-  pagebox:$("#pagebox"), a4tag:$("#a4tag"),
+  pagebox:$("#pagebox"), a4tag:$("#a4tag"), pager:$("#pager"), pNum:$("#pNum"),
+  pOf:$("#pOf"), pPrev:$("#pPrev"), pNext:$("#pNext"), pFirst:$("#pFirst"),
+  pLast:$("#pLast"), pZip:$("#pZip"),
   stats:$("#stats"), out:$("#out"), verdict:$("#verdict"),
   tabs:document.querySelectorAll("#tabs button[data-tab]"),
   engine:$("#engineTag"), tblCount:$("#tblCount"),
@@ -361,10 +383,51 @@ function render(d) {
     `${a.tables||0} table${(a.tables||0)===1?"":"s"} (${a.table_rows||0} rows) · ` +
     `${a.low_conf} low-confidence · advance ${a.char_width}px<br>${d.verdict}`;
 
+  // Multi-page PDFs get a pager; a single page or an image does not.
+  const multi = (d.pages || 1) > 1;
+  els.pager.hidden = !d.doc;
+  if (d.doc) {
+    els.pNum.value = d.page + 1;
+    els.pNum.max = d.pages;
+    els.pOf.textContent = `of ${d.pages} page${d.pages === 1 ? "" : "s"}`;
+    els.pPrev.disabled = els.pFirst.disabled = d.page === 0;
+    els.pNext.disabled = els.pLast.disabled = d.page >= d.pages - 1;
+    els.pZip.href = `/api/pages/${d.doc}.zip`;
+    els.pZip.hidden = !multi;
+  }
+
   els.page.onload = () => drawBoxes(d);
   if (els.page.complete) drawBoxes(d);
   renderPane();
 }
+
+async function gotoPage(n) {
+  if (!data || !data.doc) return;
+  n = Math.max(0, Math.min(n, data.pages - 1));
+  if (n === data.page) return;
+  els.stage.classList.add("busy");
+  try {
+    const r = await fetch(`/api/page/${data.doc}/${n}`);
+    if (!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || r.statusText);
+    render(await r.json());
+  } catch (err) {
+    els.out.innerHTML = `<pre class="msg">Failed: ${esc(err.message)}</pre>`;
+  } finally {
+    els.stage.classList.remove("busy");
+  }
+}
+
+els.pPrev.onclick  = () => gotoPage(data.page - 1);
+els.pNext.onclick  = () => gotoPage(data.page + 1);
+els.pFirst.onclick = () => gotoPage(0);
+els.pLast.onclick  = () => gotoPage(data.pages - 1);
+els.pNum.onchange  = () => gotoPage((parseInt(els.pNum.value, 10) || 1) - 1);
+addEventListener("keydown", e => {
+  if (!data || !data.doc) return;
+  if (e.target.tagName === "INPUT") return;
+  if (e.key === "ArrowLeft")  gotoPage(data.page - 1);
+  if (e.key === "ArrowRight") gotoPage(data.page + 1);
+});
 
 async function send(blob, name) {
   els.stage.classList.add("busy");

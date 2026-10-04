@@ -3,15 +3,21 @@ Layout-preserving OCR studio.
 
     python app.py            then open http://127.0.0.1:8050
 
-Drop a document in and watch two reconstructions of the same page appear side
-by side: the flattened one that ordinary OCR gives you, and the one that keeps
-the geometry. On a multi-column page they are not the same document.
+Drop an image or a PDF in and watch two reconstructions of the same page
+appear side by side: the flattened one that ordinary OCR gives you, and the
+one that keeps the geometry. On a multi-column page they are not the same
+document. Tables come out as real grids you can export.
 
-    POST /api/ocr      an image -> boxes, both reconstructions, page analysis
-    GET  /api/sample   generate a deliberately awkward multi-column page
-    GET  /api/export   the preserved text as .txt
-    GET  /api/tables/<token>.csv   every detected table
-    GET  /api/tables/<token>.xlsx  one worksheet per table
+    POST /api/ocr                   image or PDF -> boxes, text, tables
+    GET  /api/page/<doc>/<n>        OCR page n of an already uploaded PDF
+    GET  /api/pages/<doc>.zip       every PDF page rendered to PNG
+    GET  /api/sample                a deliberately awkward A4 page
+    GET  /api/export/<token>        the preserved text as .txt
+    GET  /api/tables/<token>.csv    every detected table
+    GET  /api/tables/<token>.xlsx   one worksheet per table
+
+PDFs are rasterised with pypdfium2: a pip wheel with no external binary, so
+there is no Poppler install to go wrong.
 """
 
 from __future__ import annotations
@@ -19,15 +25,15 @@ from __future__ import annotations
 import argparse
 import csv
 import io
+import os
 import time
 import uuid
+import zipfile
 from pathlib import Path
-
-import os
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -40,11 +46,15 @@ WEB = HERE / "web"
 WORK = HERE / "uploads"
 WORK.mkdir(exist_ok=True)
 
+PDF_DPI = int(os.environ.get("PDF_DPI") or 200)    # 200 is the sweet spot for OCR
+MAX_UPLOAD = 25 * 1024 * 1024
+
 app = FastAPI(title="OCR layout studio")
 
 _engine = None
 _engine_note = "not loaded"
-_last: dict[str, dict] = {}        # token -> {"text":..., "tables":[...]}
+_last: dict[str, dict] = {}        # token  -> {"text":..., "tables":[...]}
+_docs: dict[str, dict] = {}        # doc id -> {"path":..., "pages":..., "name":...}
 
 
 def engine():
@@ -59,66 +69,64 @@ def engine():
     return _engine
 
 
-@app.get("/")
-async def index():
-    return FileResponse(WEB / "index.html")
+# ==========================================================================
+# PDF
+# ==========================================================================
+def pdf_page_count(path: Path) -> int:
+    import pypdfium2 as pdfium
 
-
-@app.get("/api/health")
-async def health():
-    return {"engine": _engine.name if _engine else "not loaded", "note": _engine_note}
-
-
-@app.get("/api/sample")
-async def sample():
-    from make_sample import build
-
-    path = WORK / f"sample_{uuid.uuid4().hex[:8]}.png"
-    build(path)
-    return {"url": f"/uploads/{path.name}", "name": path.name}
-
-
-@app.post("/api/ocr")
-async def ocr(file: UploadFile = File(...)):
-    raw = await file.read()
-    if not raw:
-        raise HTTPException(400, "empty upload")
-    if len(raw) > 12 * 1024 * 1024:
-        raise HTTPException(413, "keep it under 12 MB")
-
-    suffix = Path(file.filename or "page.png").suffix.lower() or ".png"
-    if suffix == ".pdf":
-        raise HTTPException(
-            415, "PDF is not wired up here. Export the page as PNG, or add pdf2image."
-        )
-
-    path = WORK / f"{uuid.uuid4().hex[:10]}{suffix}"
-    path.write_bytes(raw)
-
-    # Normalise odd formats and get the pixel size for the overlay.
+    pdf = pdfium.PdfDocument(str(path))
     try:
-        from PIL import Image
-        with Image.open(io.BytesIO(raw)) as im:
-            im = im.convert("RGB")
-            width, height = im.size
-            im.save(path)
-    except Exception as exc:
-        raise HTTPException(400, f"could not read that image: {exc}")
+        return len(pdf)
+    finally:
+        pdf.close()
 
+
+def rasterise(path: Path, index: int, dpi: int = PDF_DPI):
+    """Render one PDF page to a PIL image. render() takes a scale relative
+    to 72 dpi, so 200 dpi is scale 200/72."""
+    import pypdfium2 as pdfium
+
+    pdf = pdfium.PdfDocument(str(path))
+    try:
+        if not 0 <= index < len(pdf):
+            raise HTTPException(404, f"page {index + 1} does not exist")
+        return pdf[index].render(scale=dpi / 72).to_pil().convert("RGB")
+    finally:
+        pdf.close()
+
+
+def save_image(im, stem: str) -> tuple[Path, int, int]:
+    path = WORK / f"{stem}.png"
+    im.save(path)
+    return path, im.width, im.height
+
+
+# ==========================================================================
+# shared pipeline
+# ==========================================================================
+def process(image_path: Path, width: int, height: int, *,
+            doc: str | None = None, page: int = 0, pages: int = 1) -> dict:
     t0 = time.time()
     try:
-        boxes = engine()(str(path))
+        boxes = engine()(str(image_path))
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(500, f"OCR failed: {exc}")
     elapsed = round((time.time() - t0) * 1000)
 
+    common = {
+        "url": f"/uploads/{image_path.name}",
+        "width": width, "height": height,
+        "engine": _engine.name, "ms": elapsed,
+        "doc": doc, "page": page, "pages": pages,
+    }
+
     if not boxes:
-        return JSONResponse({
-            "url": f"/uploads/{path.name}", "width": width, "height": height,
-            "engine": _engine.name, "ms": elapsed, "boxes": [],
-            "preserved": "", "flattened": "", "tables": [], "analysis": L.analyse([]),
-            "token": "", "verdict": "Nothing detected on this page.",
-        })
+        return {**common, "boxes": [], "preserved": "", "flattened": "", "tables": [],
+                "analysis": {**L.analyse([]), "tables": 0, "table_rows": 0},
+                "token": "", "verdict": "Nothing detected on this page."}
 
     preserved = L.preserve(boxes)
     flattened = L.flatten(boxes)
@@ -137,15 +145,112 @@ async def ocr(file: UploadFile = File(...)):
         "Single column. Flattening would have been safe here, which is exactly why "
         "you cannot decide per document by eye."
     )
+    if tables:
+        verdict += (f" {len(tables)} table pulled out as a grid." if len(tables) == 1
+                    else f" {len(tables)} tables pulled out as grids.")
 
-    return JSONResponse({
-        "url": f"/uploads/{path.name}",
-        "width": width, "height": height,
-        "engine": _engine.name, "ms": elapsed,
-        "boxes": L.to_payload(boxes),
-        "preserved": preserved, "flattened": flattened, "tables": tables,
-        "analysis": analysis, "token": token, "verdict": verdict,
-    })
+    return {**common, "boxes": L.to_payload(boxes), "preserved": preserved,
+            "flattened": flattened, "tables": tables, "analysis": analysis,
+            "token": token, "verdict": verdict}
+
+
+# ==========================================================================
+# routes
+# ==========================================================================
+@app.get("/")
+async def index():
+    return FileResponse(WEB / "index.html")
+
+
+@app.get("/api/health")
+async def health():
+    return {"engine": _engine.name if _engine else "not loaded",
+            "note": _engine_note, "pdf_dpi": PDF_DPI}
+
+
+@app.get("/api/sample")
+async def sample():
+    from make_sample import build
+
+    path = WORK / f"sample_{uuid.uuid4().hex[:8]}.png"
+    build(path)
+    return {"url": f"/uploads/{path.name}", "name": path.name}
+
+
+@app.post("/api/ocr")
+async def ocr(file: UploadFile = File(...), page: int = Form(0)):
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(400, "empty upload")
+    if len(raw) > MAX_UPLOAD:
+        raise HTTPException(413, "keep it under 25 MB")
+
+    name = file.filename or "page.png"
+    # Trust the magic bytes over the extension: a PDF saved as .png is still a PDF.
+    is_pdf = raw[:5] == b"%PDF-" or name.lower().endswith(".pdf")
+
+    if is_pdf:
+        doc = uuid.uuid4().hex[:10]
+        src = WORK / f"{doc}.pdf"
+        src.write_bytes(raw)
+        try:
+            total = pdf_page_count(src)
+        except Exception as exc:
+            raise HTTPException(400, f"could not read that PDF: {exc}")
+        _docs[doc] = {"path": src, "pages": total, "name": name}
+
+        n = max(0, min(page, total - 1))
+        img_path, w, h = save_image(rasterise(src, n), f"{doc}_p{n}")
+        return JSONResponse(process(img_path, w, h, doc=doc, page=n, pages=total))
+
+    from PIL import Image
+    try:
+        with Image.open(io.BytesIO(raw)) as im:
+            img_path, w, h = save_image(im.convert("RGB"), uuid.uuid4().hex[:10])
+    except Exception as exc:
+        raise HTTPException(400, f"could not read that file: {exc}")
+
+    return JSONResponse(process(img_path, w, h))
+
+
+@app.get("/api/page/{doc}/{n}")
+async def page_of(doc: str, n: int):
+    """Page through an already uploaded PDF without re-sending the bytes."""
+    got = _docs.get(doc)
+    if not got:
+        raise HTTPException(404, "that document is no longer loaded, upload it again")
+
+    n = max(0, min(n, got["pages"] - 1))
+    cached = WORK / f"{doc}_p{n}.png"
+    if cached.exists():
+        from PIL import Image
+        with Image.open(cached) as im:
+            w, h = im.size
+    else:
+        cached, w, h = save_image(rasterise(got["path"], n), f"{doc}_p{n}")
+
+    return JSONResponse(process(cached, w, h, doc=doc, page=n, pages=got["pages"]))
+
+
+@app.get("/api/pages/{doc}.zip")
+async def pages_zip(doc: str):
+    """Every page as a PNG. The other thing people want a PDF step for."""
+    got = _docs.get(doc)
+    if not got:
+        raise HTTPException(404, "that document is no longer loaded")
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for n in range(got["pages"]):
+            png = io.BytesIO()
+            rasterise(got["path"], n).save(png, "PNG")
+            z.writestr(f"page_{n + 1:03d}.png", png.getvalue())
+
+    stem = Path(got["name"]).stem
+    return Response(
+        buf.getvalue(), media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{stem}_pages.zip"'},
+    )
 
 
 @app.get("/api/export/{token}")
@@ -153,12 +258,13 @@ async def export(token: str):
     got = _last.get(token)
     if got is None:
         raise HTTPException(404, "nothing to export")
-    return PlainTextResponse(got["text"], headers={"Content-Disposition": 'attachment; filename="layout.txt"'})
+    return PlainTextResponse(
+        got["text"], headers={"Content-Disposition": 'attachment; filename="layout.txt"'}
+    )
 
 
 @app.get("/api/tables/{token}.csv")
 async def tables_csv(token: str):
-    """Every detected table, blank line between them."""
     got = _last.get(token)
     if got is None or not got["tables"]:
         raise HTTPException(404, "no tables detected on that page")
@@ -176,7 +282,6 @@ async def tables_csv(token: str):
 
 @app.get("/api/tables/{token}.xlsx")
 async def tables_xlsx(token: str):
-    """One worksheet per table, first row styled as a header."""
     got = _last.get(token)
     if got is None or not got["tables"]:
         raise HTTPException(404, "no tables detected on that page")
@@ -197,7 +302,7 @@ async def tables_xlsx(token: str):
                     cell.fill = PatternFill("solid", fgColor="16324F")
                     cell.alignment = Alignment(horizontal="center")
         for c in range(1, t["cols"] + 1):
-            longest = max((len(str(r[c-1])) for r in t["rows"] if c-1 < len(r)), default=10)
+            longest = max((len(str(r[c - 1])) for r in t["rows"] if c - 1 < len(r)), default=10)
             ws.column_dimensions[get_column_letter(c)].width = min(max(longest + 3, 12), 48)
         ws.freeze_panes = "A2"
 
@@ -226,7 +331,8 @@ def main() -> int:
         except Exception as exc:
             print(f"  ! no OCR engine: {exc}")
 
-    print(f"\n  OCR layout studio at http://{args.host}:{args.port}\n")
+    print(f"\n  OCR layout studio at http://{args.host}:{args.port}")
+    print(f"  accepts images and PDFs; PDFs rasterised at {PDF_DPI} dpi\n")
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
     return 0
 
