@@ -137,7 +137,7 @@ main{ flex:1; min-height:0; display:grid;
 .zoom button:hover:not(:disabled){ border-color:var(--blue); color:var(--blue); }
 .zoom button:disabled{ opacity:.3; cursor:default; }
 .zoom .pct{ font-variant-numeric:tabular-nums; }
-.zoom .pct{ font-size:12.5px; color:var(--txt-3); min-width:68px; text-align:center;
+.zoom .pct{ font-size:12.5px; color:var(--txt-3); min-width:82px; text-align:center;
             font-variant-numeric:tabular-nums; }
 
 /* ---------- extracted text, fit to WIDTH so it stays readable ---------- */
@@ -281,9 +281,9 @@ table.x td.num{ text-align:right; font-variant-numeric:tabular-nums; font-family
       <button data-tab="tables">Tables<span class="count" id="tblCount" hidden>0</span></button>
       <button data-tab="figures">Figures<span class="count" id="figCount" hidden>0</span></button>
       <span class="zoom" id="zoomBox" hidden>
-        <button id="zOut" title="Zoom out">&minus;</button>
+        <button id="zOut" title="Zoom out 0.2px  ·  Shift for 2px">&minus;</button>
         <span class="pct" id="zPct">100%</span>
-        <button id="zIn" title="Zoom in">+</button>
+        <button id="zIn" title="Zoom in 0.2px  ·  Shift for 2px">+</button>
         <button id="zFit" title="Fit width" style="width:auto;padding:0 8px;font-size:11.5px">Fit</button>
       </span>
     </div>
@@ -398,6 +398,10 @@ function charAdvance(pre) {
 }
 
 const MIN_PT = 6, MAX_PT = 34;   // 6px is the floor: below that it stops being text
+const STEP = 0.2;                // the useful range here is a couple of points
+                                 // wide, so whole-point steps skip straight
+                                 // over the size that actually reads best.
+                                 // Hold the key, or Shift-click, to move fast.
 
 /* Set the font size so the widest line lands on the margin.
    Scaling with transform or zoom both failed here: transform does not
@@ -624,11 +628,14 @@ els.tabs.forEach(b => b.onclick = () => {
    to go stale once, after a tab switch or a re-render, for the control to
    stop responding, and that is invisible from the outside. Whole-point
    steps so one click is obviously a click. */
-function step(delta) {
+function step(dir, big = false) {
   const pre = els.out.querySelector(".doc pre");
   if (!pre) return;
   const now = parseFloat(getComputedStyle(pre).fontSize) || lastPx || 13;
-  zoom = Math.max(MIN_PT, Math.min(now + delta, MAX_PT));
+  const delta = dir * STEP * (big ? 10 : 1);
+  // Snap to the step so the readout lands on 7.8, 8.0, 8.2 rather than
+  // drifting to 7.83 after a few clicks.
+  zoom = Math.round(Math.max(MIN_PT, Math.min(now + delta, MAX_PT)) / STEP) * STEP;
   applyZoom();
 }
 
@@ -637,15 +644,15 @@ function step(delta) {
 els.zoomBox.addEventListener("click", e => {
   const b = e.target.closest("button");
   if (!b) return;
-  if (b.id === "zIn")  step(+2);
-  if (b.id === "zOut") step(-2);
+  if (b.id === "zIn")  step(+1, e.shiftKey);
+  if (b.id === "zOut") step(-1, e.shiftKey);
   if (b.id === "zFit") { zoom = null; applyZoom(); }
 });
 
 addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" || !els.out.querySelector(".doc pre")) return;
-  if (e.key === "+" || e.key === "=") { e.preventDefault(); step(+2); }
-  if (e.key === "-" || e.key === "_") { e.preventDefault(); step(-2); }
+  if (e.key === "+" || e.key === "=") { e.preventDefault(); step(+1, e.shiftKey); }
+  if (e.key === "-" || e.key === "_") { e.preventDefault(); step(-1, e.shiftKey); }
   if (e.key === "0")                  { e.preventDefault(); zoom = null; applyZoom(); }
 });
 
