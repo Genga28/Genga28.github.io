@@ -13,9 +13,12 @@ text.
 
     boxes -> character width estimate -> line clustering -> column placement
 
-Engines, in preference order:
-    PaddleOCR   better detection on dense multi-column pages
-    Tesseract   fallback, via image_to_data which also returns boxes
+Engines:
+    Tesseract   default. image_to_data returns a box per *word* with true
+                coordinates, which is what every stage here depends on.
+    PaddleOCR   optional, OCR_ENGINE=paddle. Recognises characters better
+                but detects whole lines and normalises the spacing inside
+                them, so column gaps are destroyed before this code runs.
 """
 
 from __future__ import annotations
@@ -59,6 +62,37 @@ class Box:
 # ==========================================================================
 # engines
 # ==========================================================================
+def split_line_box(text: str, x0: float, y0: float, x1: float, y1: float,
+                   conf: float) -> list["Box"]:
+    """Turn one line-level region into word-level boxes.
+
+    PaddleOCR detects text *lines*, not words: a whole table row comes back
+    as a single region whose text is "Scope 1  tCO2e  4,812  5,390". Every
+    stage downstream here, cell splitting, column anchoring, table building,
+    needs a position per word, so a line box collapses an entire row into
+    one cell.
+
+    A line is set in one font, so character positions across it are very
+    close to uniform. Interpolating each word's offset by its character
+    index recovers usable coordinates: approximate, but accurate to well
+    under a character, which is all the column logic needs.
+    """
+    if not text:
+        return []
+    width = max(x1 - x0, 1.0)
+    advance = width / len(text)
+
+    boxes, i = [], 0
+    for token in text.split(" "):
+        if token:
+            boxes.append(Box(token,
+                             x0 + i * advance, y0,
+                             x0 + (i + len(token)) * advance, y1,
+                             conf))
+        i += len(token) + 1
+    return boxes or [Box(text, x0, y0, x1, y1, conf)]
+
+
 class PaddleEngine:
     name = "paddleocr"
 
@@ -81,7 +115,7 @@ class PaddleEngine:
             ys = [float(p[1]) for p in quad]
             text = (text or "").strip()
             if text:
-                out.append(Box(text, min(xs), min(ys), max(xs), max(ys), float(conf)))
+                out.extend(split_line_box(text, min(xs), min(ys), max(xs), max(ys), float(conf)))
         return out
 
 
@@ -152,8 +186,19 @@ class TesseractEngine:
         return out
 
 
-def load_engine(prefer: str = "paddle"):
-    """Returns (engine, note). Never raises: falls through to whatever exists."""
+def load_engine(prefer: str = "tesseract"):
+    """Returns (engine, note). Never raises: falls through to whatever exists.
+
+    Tesseract is the default despite PaddleOCR reading characters better
+    (0.98 against 0.89 on the corpus), because Paddle detects text *lines*
+    and normalises the whitespace inside them. The wide gap that makes a
+    column a column is gone before this code sees it, and no amount of
+    interpolation brings it back. On the six corpus pages Tesseract finds
+    all 8 tables correctly; Paddle finds 4, two of them malformed.
+
+    For plain prose where only the characters matter, Paddle is the better
+    engine: OCR_ENGINE=paddle in demos/.env.
+    """
     order = ["paddle", "tesseract"] if prefer == "paddle" else ["tesseract", "paddle"]
     errors = []
     for name in order:

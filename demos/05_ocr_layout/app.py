@@ -63,7 +63,7 @@ def engine():
     global _engine, _engine_note
     if _engine is None:
         t0 = time.time()
-        _engine, _ = L.load_engine(prefer=os.environ.get("OCR_ENGINE") or "paddle")
+        _engine, _ = L.load_engine(prefer=os.environ.get("OCR_ENGINE") or "tesseract")
         _engine_note = f"{_engine.name} (ready in {time.time() - t0:.1f}s)"
         print(f"  engine: {_engine_note}")
     return _engine

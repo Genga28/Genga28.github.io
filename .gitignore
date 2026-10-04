@@ -13,3 +13,4 @@ demos/**/session.db
 demos/**/uploads/
 .env
 demos/.env
+demos/05_ocr_layout/corpus/
