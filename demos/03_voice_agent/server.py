@@ -27,6 +27,7 @@ import logging
 import sqlite3
 import time
 import uuid
+import wave
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -77,6 +78,21 @@ PARTIAL_EVERY = 0.4
 # lasts and is loud; echo that survives the browser's canceller is neither.
 BARGE_FRAMES = 22                      # 440 ms of continuous speech
 BARGE_RMS = 0.02
+
+# Half-duplex: the microphone is ignored while the agent is speaking, and
+# for a moment after she stops.
+#
+# On headphones this is unnecessary and barge-in is strictly better. On
+# speakers it is the only thing that works. The browser's echo canceller is
+# built for a remote talker and it does not fully suppress a local synthetic
+# voice, so enough of Aria reaches the microphone to open the VAD, get
+# transcribed, and come back as the user's next turn. She then answers
+# herself, which is what produced a transcript reading "Alright, thanks for
+# being with me" from a user who said nothing at all.
+#
+# The tail covers the room's reverberation plus the last frames still in the
+# outbound buffer when `speaking` goes false.
+DEAF_TAIL = 0.45
 
 # The tail of the utterance a live caption is decoded from. Short, because
 # the cost scales with it and a caption only needs the words being said now.
@@ -184,6 +200,7 @@ class Session:
         self._queued: np.ndarray | None = None
         self._cancel = False
         self._over = 0                 # frames of speech on top of the agent
+        self._deaf_until = 0.0
 
         self.state.conn.execute(
             "INSERT OR REPLACE INTO sessions VALUES (?,?,?,?)",
@@ -225,6 +242,16 @@ class Session:
         while len(self._tail) >= FRAME_SAMPLES:
             frame, self._tail = self._tail[:FRAME_SAMPLES], self._tail[FRAME_SAMPLES:]
 
+            # Half-duplex gate. Nothing the microphone hears while she is
+            # talking is trusted, because most of it is her.
+            now = time.time()
+            if self.voice.speaking:
+                self._deaf_until = now + DEAF_TAIL
+            if not self.state.duplex and now < self._deaf_until:
+                if self.seg.active:
+                    self.seg.reset()
+                continue
+
             # Barge-in, and the reason it is not a one-line check.
             #
             # It was first gated on `not self._busy`, which it can never
@@ -238,7 +265,8 @@ class Session:
             # So an interruption now has to look like one: continuously
             # voiced for BARGE_FRAMES and louder than BARGE_RMS.
             loud = float(np.sqrt(np.mean((frame.astype(np.float32) / 32768.0) ** 2)))
-            if self.voice.speaking and self.seg.active and loud > BARGE_RMS:
+            if (self.state.duplex and self.voice.speaking
+                    and self.seg.active and loud > BARGE_RMS):
                 self._over += 1
             else:
                 self._over = 0
@@ -303,8 +331,9 @@ class Session:
             text = await loop.run_in_executor(None, self.state.stt_fast, audio, True)
             # Discard it if the utterance closed while we were decoding: the
             # final transcript is already on its way and is better.
-            if text and text != self._partial_text and self.seg.active and not self._busy:
+            if text and text != self._partial_text and not self._busy:
                 self._partial_text = text
+                log.info("[%s] ... %s", self.sid[:8], text)
                 await self.emit("caption", who="user", text=text, final=False)
         except Exception as exc:
             log.debug("partial decode skipped: %s", exc)
@@ -349,11 +378,15 @@ class Session:
             await self.emit("state", state="thinking")
             text = await loop.run_in_executor(None, self.state.stt, audio)
             if not text or len(text) < 2:
+                # Saved as well: a clip that produced nothing is exactly the
+                # one worth listening back to.
+                self.state.dump(audio, "(nothing recognised)")
                 await self.emit("state", state="listening")
                 return
 
             heard_ms = int((time.time() - t0) * 1000)
             log.info("[%s] user: %s  (%d ms)", self.sid[:8], text, heard_ms)
+            self.state.dump(audio, text)
             await self.emit("caption", who="user", text=text, final=True)
             self.record("user", text, heard_ms)
 
@@ -435,7 +468,8 @@ class Session:
 # app
 # ==========================================================================
 class State:
-    def __init__(self, model: str, voice: str | None) -> None:
+    def __init__(self, model: str, voice: str | None, duplex: bool = False,
+                 save_audio: bool = False) -> None:
         self.conn = db()
         self.stt = Transcriber(model)
         # A separate model for the live caption.
@@ -454,6 +488,41 @@ class State:
         # worse than no caption.
         self.stt_fast = Transcriber("tiny.en")
         self.model_name = model
+        self.duplex = duplex
+        self.save_audio = save_audio
+        self.clip_no = 0
+        if save_audio:
+            (HERE / "output" / "utterances").mkdir(parents=True, exist_ok=True)
+            log.info("saving every utterance to %s", HERE / "output" / "utterances")
+
+    def dump(self, audio: np.ndarray, text: str) -> None:
+        """Write the exact audio the recogniser was given, and what it said.
+
+        Transcription being wrong has two very different causes and they are
+        not distinguishable from the transcript alone: the audio reaching
+        whisper may be clipped, quiet, truncated by the segmenter or full of
+        the agent's own voice, or the audio may be fine and the model simply
+        wrong. Listening to the clip settles it in seconds.
+        """
+        if not self.save_audio:
+            return
+        self.clip_no += 1
+        base = HERE / "output" / "utterances" / f"{self.clip_no:03d}"
+        try:
+            with wave.open(str(base.with_suffix(".wav")), "wb") as w:
+                w.setnchannels(1)
+                w.setsampwidth(2)
+                w.setframerate(SAMPLE_RATE)
+                w.writeframes(audio.tobytes())
+            peak = float(np.max(np.abs(audio)) / 32768.0)
+            rms = float(np.sqrt(np.mean((audio / 32768.0) ** 2)))
+            base.with_suffix(".txt").write_text(
+                f"{len(audio) / SAMPLE_RATE:.2f}s  peak {peak:.3f}  rms {rms:.4f}"
+                f"{'  CLIPPED' if peak > 0.98 else ''}\n{text}\n", encoding="utf-8")
+            log.info("  saved %s  %.2fs peak %.2f rms %.4f", base.name,
+                     len(audio) / SAMPLE_RATE, peak, rms)
+        except Exception as exc:
+            log.warning("could not save clip: %s", exc)
         # Probed once at boot. A health check used to construct a Brain,
         # which now means building a client and re-running provider
         # selection on every single request.
@@ -618,11 +687,20 @@ def main() -> int:
     # sat under every downstream threshold, both fixed above.
     ap.add_argument("--whisper", default=os.environ.get("WHISPER_MODEL") or "base.en",
                     help="tiny.en | base.en | small.en  (or WHISPER_MODEL in .env)")
+    ap.add_argument("--save-audio", action="store_true",
+                    help="write every utterance to output/utterances as a wav "
+                         "with its transcript, peak and rms. The way to tell a "
+                         "bad microphone from a bad recognition")
+    ap.add_argument("--duplex", action="store_true",
+                    help="keep the microphone live while the agent speaks, so you "
+                         "can interrupt her. Wear headphones: on speakers she hears "
+                         "herself and answers it")
     ap.add_argument("--voice", default=os.environ.get("PIPER_VOICE") or None,
                     help="path to a Piper .onnx voice  (or PIPER_VOICE in .env)")
     args = ap.parse_args()
 
-    app.state.s = State(args.whisper, args.voice)
+    app.state.s = State(args.whisper, args.voice, duplex=args.duplex,
+                        save_audio=args.save_audio)
     app.mount("/static", StaticFiles(directory=WEB), name="static")
 
     print(f"\n  Room ready at http://{args.host}:{args.port}")
