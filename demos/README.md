@@ -1,6 +1,6 @@
 # Demos
 
-Four runnable applications. Run them locally, screen-record them, drop the clips into
+Five runnable applications. Run them locally, screen-record them, drop the clips into
 `assets/video/`, and point the portfolio at them from the editor's **Demo videos** tab.
 
 Recording locally beats hosting these: no cloud bill, no cold starts, no webcam permissions
@@ -13,6 +13,7 @@ that a recruiter would have to figure out.
 | 2 | Web automation: drug reference table | `webauto` | Selenium, structured scraping, openpyxl |
 | 3 | Voice agent with avatar | `voice` | ASR, TTS, animated avatar, optional Claude brain |
 | 4 | Real-time proctoring | `proctoring` | MediaPipe face mesh, iris gaze, signal fusion |
+| 5 | Layout-preserving OCR studio | `ocr` | Tesseract, column anchoring, table and figure detection |
 
 ## Setup
 
@@ -42,11 +43,17 @@ Neither blocks a demo from running; each one improves a demo if present.
 
 ## Running them
 
+Demos 1, 2 and 4 open a window and run to completion. Demos 3 and 5 are
+servers: start them, then open the URL.
+
 ```powershell
 python 01_rpa_desktop/rpa_bill_to_excel.py
 python 02_web_automation/drug_table.py
-python 03_voice_agent/voice_agent.py
 python 04_proctoring/proctor.py
+python 03_voice_agent/server.py            # then open http://127.0.0.1:8080
+
+cd 05_ocr_layout
+python -m uvicorn app:app --port 8005      # then open http://127.0.0.1:8005
 ```
 
 Each folder has its own README with flags and what to expect on screen.
