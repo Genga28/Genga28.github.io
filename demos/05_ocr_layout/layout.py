@@ -145,44 +145,6 @@ class TesseractEngine:
         return out
 
 
-def words_from_pdf(pdf_path: str, index: int, dpi: int = 200) -> list[Box]:
-    """Read a born-digital PDF's own text layer instead of OCR'ing a picture
-    of it.
-
-    When a PDF was generated rather than scanned, the words and their exact
-    coordinates are already in the file. Rasterising it and running OCR
-    throws that away and hands back a lossy guess: measured on a real CV,
-    the text layer gave 938 words in 0.88s with exact positions, while
-    Tesseract on the same page took 4.27s at 91.6% confidence and mangled
-    fifteen of them.
-
-    pdfplumber reports points at 72 dpi; scale to match the rendered raster
-    so the boxes line up with the page image the UI displays.
-    """
-    try:
-        import pdfplumber
-    except ImportError:
-        return []
-
-    scale = dpi / 72.0
-    out: list[Box] = []
-    try:
-        with pdfplumber.open(pdf_path) as pdf:
-            if not 0 <= index < len(pdf.pages):
-                return []
-            for w in pdf.pages[index].extract_words(keep_blank_chars=False):
-                text = (w.get("text") or "").strip()
-                if not text:
-                    continue
-                out.append(Box(text,
-                               float(w["x0"]) * scale, float(w["top"]) * scale,
-                               float(w["x1"]) * scale, float(w["bottom"]) * scale,
-                               1.0))
-    except Exception:
-        return []
-    return out
-
-
 def load_engine(prefer: str = "paddle"):
     """Returns (engine, note). Never raises: falls through to whatever exists."""
     order = ["paddle", "tesseract"] if prefer == "paddle" else ["tesseract", "paddle"]

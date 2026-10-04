@@ -66,11 +66,14 @@ main{ flex:1; min-height:0; display:grid;
 
 /* ---------- the desk and the A4 sheet ---------- */
 .desk{ position:relative; flex:1; min-height:0; background:var(--desk);
-       padding:16px; display:flex; justify-content:center; align-items:flex-start; overflow:auto; }
+       padding:14px; display:grid; place-items:center; overflow:auto; }
 .sheet{ position:relative; background:#fff; width:100%; max-width:100%;
         box-shadow:0 1px 4px rgba(16,32,54,.12), 0 14px 36px -18px rgba(16,32,54,.45);
         border-radius:2px; flex:none; }
-.sheet.page{ aspect-ratio:1 / 1.4142; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+/* Fit the whole page in view: height drives it, width follows the ratio,
+   and max-width catches a landscape page. */
+.sheet.page{ aspect-ratio:1 / 1.4142; height:100%; width:auto; max-width:100%; max-height:100%;
+             display:flex; align-items:center; justify-content:center; overflow:hidden; }
 .pagebox{ position:relative; max-width:100%; max-height:100%; }
 .pagebox img{ display:block; width:100%; height:100%; }
 .pagebox svg{ position:absolute; inset:0; width:100%; height:100%; }
@@ -139,11 +142,11 @@ main{ flex:1; min-height:0; display:grid;
 .doc{ padding:20px 22px; }
 .doc pre{ margin:0; font-family:var(--fm); font-size:14px; line-height:1.5; color:#16222F;
           white-space:pre-wrap; overflow-wrap:break-word; tab-size:4; }
-/* A line too wide for the pane wraps with a hanging indent rather than
-   being clipped or forcing the type down to 7px. The indent makes a
-   continuation visibly a continuation and not a new row. */
-.doc pre .ln{ padding-left:5ch; text-indent:-5ch; }
-.doc pre .ln.wrapped{ border-left:2px solid #E2E7EF; margin-left:-7px; padding-left:calc(5ch + 5px); }
+/* A line too wide for the pane wraps rather than being clipped. No hanging
+   indent: a negative text-indent pulls the first line outside the padding
+   box, and with overflow hidden on the column that silently ate the first
+   characters of every row. */
+.doc pre .ln{ display:block; }
 .doc pre.flat{ color:#5A6B82; }
 .doc pre .ln{ display:block; opacity:0; animation:slidein .3s var(--ease) forwards; }
 @keyframes slidein{ from{ opacity:0; transform:translateX(-6px); } to{ opacity:1; transform:none; } }
@@ -415,13 +418,7 @@ function applyZoom() {
   px = Math.max(MIN_PT, Math.min(px, MAX_PT));
   pre.style.fontSize = px.toFixed(2) + "px";
 
-  // Mark the lines that actually wrap, so the hanging indent reads as a
-  // continuation rather than a mystery.
   const limit = Math.floor((doc.clientWidth - 2) / (px * ratio));
-  pre.querySelectorAll(".ln").forEach(el => {
-    el.classList.toggle("wrapped", el.textContent.length > limit);
-  });
-
   const widest = +pre.dataset.widest || 0;
   els.zPct.textContent = px.toFixed(1) + "px" + (widest > limit ? ` · ${widest}c` : "");
 }

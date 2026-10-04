@@ -6,7 +6,6 @@ uvicorn[standard]==0.30.6
 python-multipart==0.0.12
 pillow==10.4.0
 pypdfium2==5.13.0           # PDF rasterising, no external binary
-pdfplumber==0.11.10         # read a PDF text layer instead of OCR
 numpy<2
 
 # Primary engine

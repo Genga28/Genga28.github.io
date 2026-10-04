@@ -11,7 +11,6 @@ requests==2.32.3
 pyautogui==0.9.54
 pillow==10.4.0
 pypdfium2==5.13.0          # PDF to image, pip wheel, no Poppler
-pdfplumber==0.11.10        # born-digital PDF text layer, exact coords
 pytesseract==0.3.13          # needs the Tesseract binary; optional, has a fallback
 
 # --- 02 web automation --------------------------------------------------
