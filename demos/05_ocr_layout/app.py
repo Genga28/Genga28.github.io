@@ -155,9 +155,6 @@ def process(image_path: Path, width: int, height: int, *,
         "Single column. Flattening would have been safe here, which is exactly why "
         "you cannot decide per document by eye."
     )
-    if tables:
-        verdict += (f" {len(tables)} table pulled out as a grid." if len(tables) == 1
-                    else f" {len(tables)} tables pulled out as grids.")
 
     return {**common, "boxes": L.to_payload(boxes), "preserved": preserved,
             "flattened": flattened, "tables": tables, "figures": figures,
