@@ -191,7 +191,7 @@ table.x td.num{ text-align:right; font-variant-numeric:tabular-nums; font-family
 .figdl:hover{ text-decoration:underline; }
 
 /* ---------- stats strip ---------- */
-.stats{ flex:none; display:grid; grid-template-columns:repeat(6,1fr); gap:1px;
+.stats{ flex:none; display:grid; grid-template-columns:repeat(5,1fr); gap:1px;
         background:var(--line); border-bottom:1px solid var(--line); }
 .stat{ background:var(--paper); padding:5px 4px; display:flex; align-items:baseline;
        justify-content:center; gap:4px; min-width:0; }
@@ -201,7 +201,7 @@ table.x td.num{ text-align:right; font-variant-numeric:tabular-nums; font-family
             overflow:hidden; text-overflow:ellipsis; }
 .stat:nth-child(1) b{ color:var(--blue); } .stat:nth-child(2) b{ color:var(--teal); }
 .stat:nth-child(3) b{ color:var(--violet); } .stat:nth-child(4) b{ color:var(--amber); }
-.stat:nth-child(5) b{ color:var(--red); } .stat:nth-child(6) b{ color:var(--pink); }
+.stat:nth-child(5) b{ color:var(--pink); }
 .verdict{ flex:none; padding:7px 13px; font-size:13px; line-height:1.45; color:var(--txt-2);
           border-bottom:1px solid var(--line); background:#F6F3FF; }
 .verdict b{ color:var(--violet); }
@@ -241,7 +241,6 @@ table.x td.num{ text-align:right; font-variant-numeric:tabular-nums; font-family
       <div class="stat"><b>&mdash;</b><span>boxes</span></div>
       <div class="stat"><b>&mdash;</b><span>lines</span></div>
       <div class="stat"><b>&mdash;</b><span>columns</span></div>
-      <div class="stat"><b>&mdash;</b><span>tables</span></div>
       <div class="stat"><b>&mdash;</b><span>figures</span></div>
       <div class="stat"><b>&mdash;</b><span>conf</span></div>
     </div>
@@ -519,7 +518,7 @@ function render(d) {
 
   const a = d.analysis, c = els.stats.querySelectorAll(".stat b");
   countUp(c[0],a.boxes); countUp(c[1],a.lines); countUp(c[2],a.columns);
-  countUp(c[3],a.tables||0); countUp(c[4],a.figures||0); countUp(c[5],a.mean_conf);
+  countUp(c[3],a.figures||0); countUp(c[4],a.mean_conf);
   els.tblCount.textContent = a.tables || 0;
   els.tblCount.hidden = !a.tables;
   els.figCount.textContent = a.figures || 0;
