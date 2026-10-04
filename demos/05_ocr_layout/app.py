@@ -105,21 +105,40 @@ def save_image(im, stem: str) -> tuple[Path, int, int]:
 # ==========================================================================
 # shared pipeline
 # ==========================================================================
+MIN_TEXT_WORDS = 20      # fewer than this and the "text layer" is a scan artefact
+
+
+def read_page(image_path: Path, pdf_path: Path | None, page: int) -> tuple[list, str]:
+    """Hybrid: prefer a born-digital PDF's own text layer, fall back to OCR.
+
+    A generated PDF already contains its words and their exact coordinates.
+    Rasterising and OCR'ing it is slower and lossy. A scanned PDF has no
+    text layer, so there is nothing to prefer and OCR is the only option.
+    Deciding per page, not per document, because a file can mix the two.
+    """
+    if pdf_path is not None:
+        words = L.words_from_pdf(str(pdf_path), page, PDF_DPI)
+        if len(words) >= MIN_TEXT_WORDS:
+            return words, "pdf text layer"
+    return engine()(str(image_path)), _engine.name
+
+
 def process(image_path: Path, width: int, height: int, *,
-            doc: str | None = None, page: int = 0, pages: int = 1) -> dict:
+            doc: str | None = None, page: int = 0, pages: int = 1,
+            pdf_path: Path | None = None) -> dict:
     t0 = time.time()
     try:
-        boxes = engine()(str(image_path))
+        boxes, source = read_page(image_path, pdf_path, page)
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(500, f"OCR failed: {exc}")
+        raise HTTPException(500, f"text extraction failed: {exc}")
     elapsed = round((time.time() - t0) * 1000)
 
     common = {
         "url": f"/uploads/{image_path.name}",
         "width": width, "height": height,
-        "engine": _engine.name, "ms": elapsed,
+        "engine": source, "ms": elapsed,
         "doc": doc, "page": page, "pages": pages,
     }
 
@@ -152,6 +171,8 @@ def process(image_path: Path, width: int, height: int, *,
     if tables:
         verdict += (f" {len(tables)} table pulled out as a grid." if len(tables) == 1
                     else f" {len(tables)} tables pulled out as grids.")
+    if source == "pdf text layer":
+        verdict += " Read from the PDF's own text layer, so positions are exact."
 
     return {**common, "boxes": L.to_payload(boxes), "preserved": preserved,
             "flattened": flattened, "tables": tables, "figures": figures,
@@ -205,7 +226,8 @@ async def ocr(file: UploadFile = File(...), page: int = Form(0)):
 
         n = max(0, min(page, total - 1))
         img_path, w, h = save_image(rasterise(src, n), f"{doc}_p{n}")
-        return JSONResponse(process(img_path, w, h, doc=doc, page=n, pages=total))
+        return JSONResponse(process(img_path, w, h, doc=doc, page=n,
+                                    pages=total, pdf_path=src))
 
     from PIL import Image
     try:
@@ -233,7 +255,8 @@ async def page_of(doc: str, n: int):
     else:
         cached, w, h = save_image(rasterise(got["path"], n), f"{doc}_p{n}")
 
-    return JSONResponse(process(cached, w, h, doc=doc, page=n, pages=got["pages"]))
+    return JSONResponse(process(cached, w, h, doc=doc, page=n,
+                                pages=got["pages"], pdf_path=got["path"]))
 
 
 @app.get("/api/pages/{doc}.zip")
