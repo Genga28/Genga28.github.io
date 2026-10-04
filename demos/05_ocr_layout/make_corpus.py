@@ -440,7 +440,8 @@ def main() -> int:
     if args.check:
         import layout as L
         print("\n  running the pipeline over each page\n")
-        engine, _ = L.load_engine(prefer="paddle")
+        import os
+        engine, _ = L.load_engine(prefer=os.environ.get("OCR_ENGINE") or "tesseract")
         print(f"  engine: {engine.name}\n")
         print("  page        boxes  lines  cols  tables  figures  conf")
         for name, path, _ in made:
