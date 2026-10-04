@@ -225,28 +225,46 @@ _NUMERIC = re.compile(r"^[\s$£€₹]*[-+]?[\d,]+(?:\.\d+)?\s*%?$")
 
 
 def is_tabular(grid: list[list[str]]) -> bool:
-    """Separate a real table from two columns of prose.
+    """Separate a real table from anything else that happens to line up.
 
-    Both align on the same anchors, so geometry alone cannot tell them apart.
-    What does: table cells are short, and tables usually carry a numeric
-    column. A two-column article has long cells and no numbers, so requiring
-    either short cells or a numeric column rejects it without rejecting a
-    text-only table like name / role / team.
+    Geometry alone cannot do it: two columns of prose, a label/value block
+    and a list of short headings all sit on the same anchors a table does.
+    Four structural tests, and a candidate has to earn its way through.
     """
     cells = [c for row in grid for c in row if c.strip()]
     if not cells:
         return False
 
-    # A column counts as numeric if most of its filled cells parse as numbers.
-    cols = len(grid[0])
+    rows, cols = len(grid), len(grid[0])
+
+    # 1. Prose. Table cells are terse; sentences are not.
+    median_len = statistics.median(len(c) for c in cells)
+    if median_len > 24:
+        return False
+
+    # 2. Mostly-empty grids are an alignment coincidence, not a table.
+    fill = len(cells) / float(rows * cols)
+    if fill < 0.55:
+        return False
+
+    # 3. A table has a consistent row shape. Rows that each hold a different
+    #    number of cells are stray text that happened to align.
+    per_row = [sum(1 for c in row if c.strip()) for row in grid]
+    regular = len(set(per_row)) <= 2 and min(per_row) >= 2
+
+    # 4. A column counts as numeric if most of its filled cells parse as one.
+    #    This is the strongest single signal that a grid carries data.
     numeric_cols = 0
     for k in range(cols):
         vals = [row[k].strip() for row in grid if k < len(row) and row[k].strip()]
         if len(vals) >= 2 and sum(bool(_NUMERIC.match(v)) for v in vals) / len(vals) >= 0.6:
             numeric_cols += 1
 
-    median_len = statistics.median(len(c) for c in cells)
-    return numeric_cols >= 1 or median_len <= 18
+    if numeric_cols >= 1 and regular:
+        return True                      # a data table
+    if cols >= 3 and regular and median_len <= 16:
+        return True                      # a text-only table: name / role / team
+    return False
 
 
 def preserve(boxes: list[Box], gutter: int = 3) -> str:

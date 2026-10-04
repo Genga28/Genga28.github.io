@@ -132,7 +132,9 @@ main{ flex:1; min-height:0; display:grid;
 .zoom{ margin-left:auto; display:flex; align-items:center; gap:4px; padding-right:4px; }
 .zoom button{ width:26px; height:26px; border:1px solid var(--line-2); border-radius:7px;
               background:var(--paper); font-size:14px; line-height:1; padding:0; }
-.zoom button:hover{ border-color:var(--blue); color:var(--blue); }
+.zoom button:hover:not(:disabled){ border-color:var(--blue); color:var(--blue); }
+.zoom button:disabled{ opacity:.3; cursor:default; }
+.zoom .pct{ font-variant-numeric:tabular-nums; }
 .zoom .pct{ font-size:11.5px; color:var(--txt-3); min-width:40px; text-align:center;
             font-variant-numeric:tabular-nums; }
 
@@ -316,7 +318,7 @@ const els = {
   pFirst:$("#pFirst"), pLast:$("#pLast"), pZip:$("#pZip"),
   zoomBox:$("#zoomBox"), zIn:$("#zIn"), zOut:$("#zOut"), zFit:$("#zFit"), zPct:$("#zPct"),
 };
-let data = null, tab = "preserved", zoom = null;   // null = fit width
+let data = null, tab = "preserved", zoom = null, lastPx = 13;   // zoom null = fit width
 
 const NS = "http://www.w3.org/2000/svg";
 const el = (n,a) => { const e = document.createElementNS(NS,n); for (const k in a) e.setAttribute(k,a[k]); return e; };
@@ -393,7 +395,7 @@ function charAdvance(pre) {
   return ADVANCE;
 }
 
-const MIN_PT = 8.5, MAX_PT = 19;
+const MIN_PT = 6, MAX_PT = 32;   // Fit may go small; manual zoom may go large
 
 /* Set the font size so the widest line lands on the margin.
    Scaling with transform or zoom both failed here: transform does not
@@ -405,17 +407,24 @@ function applyZoom() {
   const pre = doc.querySelector("pre");
   if (!pre) return;
 
-  // Nothing wraps any more, so fit the widest line exactly. Wrapping broke
-   // the column alignment that this whole view exists to show.
+  // Nothing wraps, so fit the widest line exactly. Wrapping broke the
+  // column alignment this view exists to show.
   const cols = +pre.dataset.widest || +pre.dataset.cols || 80;
   const avail = doc.clientWidth - 2;
   const ratio = charAdvance(pre);
 
   let px = zoom !== null ? zoom : avail / (cols * ratio);
+  // A bad advance measurement yields NaN, which sets font-size to "NaNpx".
+  // The browser ignores that, the type never changes, and the control looks
+  // dead. Fall back rather than write garbage.
+  if (!isFinite(px) || px <= 0) px = 13;
   px = Math.max(MIN_PT, Math.min(px, MAX_PT));
-  pre.style.fontSize = px.toFixed(2) + "px";
 
+  pre.style.fontSize = px.toFixed(2) + "px";
+  lastPx = px;
   els.zPct.textContent = px.toFixed(1) + "px · " + cols + "c";
+  els.zIn.disabled  = px >= MAX_PT - 0.01;
+  els.zOut.disabled = px <= MIN_PT + 0.01;
 }
 
 function renderText() {
@@ -609,13 +618,23 @@ els.tabs.forEach(b => b.onclick = () => {
   renderPane();
 });
 
-function currentPx() {
-  const pre = els.out.querySelector(".doc pre");
-  return pre ? parseFloat(getComputedStyle(pre).fontSize) : 14;
+// Step by a ratio, not a flat pixel: +1px is a 12% jump at 8px and a 5%
+// jump at 20px, so a flat step feels inconsistent at both ends.
+function step(factor) {
+  const base = lastPx || 13;
+  zoom = Math.max(MIN_PT, Math.min(base * factor, MAX_PT));
+  applyZoom();
 }
-els.zIn.onclick  = () => { zoom = Math.min(currentPx() + 1, MAX_PT); applyZoom(); };
-els.zOut.onclick = () => { zoom = Math.max(currentPx() - 1, MIN_PT); applyZoom(); };
-els.zFit.onclick = () => { zoom = null; applyZoom(); };
+els.zIn.addEventListener("click",  () => step(1.15));
+els.zOut.addEventListener("click", () => step(1 / 1.15));
+els.zFit.addEventListener("click", () => { zoom = null; applyZoom(); });
+
+addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || !els.out.querySelector(".doc pre")) return;
+  if (e.key === "+" || e.key === "=") { e.preventDefault(); step(1.15); }
+  if (e.key === "-" || e.key === "_") { e.preventDefault(); step(1 / 1.15); }
+  if (e.key === "0")                  { e.preventDefault(); zoom = null; applyZoom(); }
+});
 
 els.pPrev.onclick  = () => gotoPage(data.page - 1);
 els.pNext.onclick  = () => gotoPage(data.page + 1);
