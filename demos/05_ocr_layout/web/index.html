@@ -56,6 +56,14 @@ main{ flex:1; min-height:0; display:grid;
       grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; padding:12px; }
 @media (max-width:1060px){ body{ overflow:auto; } main{ grid-template-columns:1fr; height:auto; } }
 
+/* Wide mode. Fit size is pane width over the longest line, so a 132 column
+   page on a half pane lands near 7px and the glyphs grain out. Weight and
+   tracking only make small type darker, not bigger. Width is the only term
+   in that division anyone can actually change: hand the text the whole
+   window and the same page fits at twice the size. */
+main.wide{ grid-template-columns:minmax(0,1fr); }
+main.wide #pagePane{ display:none; }
+
 .pane{ min-width:0; min-height:0; display:flex; flex-direction:column;
        border:1px solid var(--line); border-radius:14px; background:var(--paper);
        overflow:hidden; box-shadow:var(--shadow); }
@@ -134,12 +142,14 @@ main{ flex:1; min-height:0; display:grid;
 .zoom button:active{ background:var(--blue); border-color:var(--blue); color:#fff; }
 .zoom button:hover:not(:disabled){ border-color:var(--blue); color:var(--blue); }
 .zoom button:disabled{ opacity:.3; cursor:default; }
+/* after :hover, so the active toggle keeps its white label under the cursor */
+.zoom button.on, .zoom button.on:hover{ background:var(--blue); border-color:var(--blue); color:#fff; }
 .zoom .pct{ font-variant-numeric:tabular-nums; }
 .zoom .pct{ font-size:12.5px; color:var(--txt-3); min-width:82px; text-align:center;
             font-variant-numeric:tabular-nums; }
 
 /* ---------- extracted text, fit to WIDTH so it stays readable ---------- */
-.doc{ padding:18px 20px; overflow-x:auto; }
+.doc{ padding:14px 14px; overflow-x:auto; }
 .doc pre{ margin:0; font-family:var(--fm); font-size:15px; line-height:1.52; color:#16222F;
           white-space:pre; tab-size:4; }
 /* A line too wide for the pane wraps rather than being clipped. No hanging
@@ -223,9 +233,9 @@ pre.msg{ margin:0; padding:24px; font-family:var(--fm); font-size:12.5px; line-h
   <input type="file" id="file" accept="image/*,application/pdf,.pdf" hidden>
 </div>
 
-<main>
+<main id="main">
   <!-- ===================== page ===================== -->
-  <section class="pane">
+  <section class="pane" id="pagePane">
     <div class="pane-head">
       <span class="lbl">Page</span>
       <span class="right" id="engineTag">no engine loaded</span>
@@ -266,7 +276,7 @@ pre.msg{ margin:0; padding:24px; font-family:var(--fm); font-size:12.5px; line-h
   </section>
 
   <!-- ===================== extraction ===================== -->
-  <section class="pane">
+  <section class="pane" id="textPane">
     <div class="tabs" id="tabs">
       <button class="on" data-tab="preserved">Layout preserved</button>
       <button data-tab="flattened">Flattened</button>
@@ -276,6 +286,8 @@ pre.msg{ margin:0; padding:24px; font-family:var(--fm); font-size:12.5px; line-h
         <span class="pct" id="zPct">100%</span>
         <button id="zIn" title="Zoom in 0.2px  ·  Shift for 2px">+</button>
         <button id="zFit" title="Fit width" style="width:auto;padding:0 8px;font-size:11.5px">Fit</button>
+        <button id="zWide" title="Hide the page and give the text the whole window (W)"
+                style="width:auto;padding:0 8px;font-size:11.5px">Wide</button>
       </span>
     </div>
     <div class="scroll" id="out"><pre class="msg">Drop a scanned invoice, a lab report, a bank statement or a PDF.
@@ -306,6 +318,7 @@ const els = {
   pager:$("#pager"), pNum:$("#pNum"), pOf:$("#pOf"), pPrev:$("#pPrev"), pNext:$("#pNext"),
   pFirst:$("#pFirst"), pLast:$("#pLast"), pZip:$("#pZip"),
   zoomBox:$("#zoomBox"), zIn:$("#zIn"), zOut:$("#zOut"), zFit:$("#zFit"), zPct:$("#zPct"),
+  zWide:$("#zWide"), main:$("#main"),
 };
 let data = null, tab = "preserved", zoom = null, lastPx = 13;   // zoom null = fit width
 
@@ -419,9 +432,13 @@ function applyZoom() {
   pre.style.color = px < 7.5 ? "#000000" : px < 9 ? "#0B1420" : "";
   // A touch of tracking stops adjacent stems merging at the smallest sizes.
   pre.style.letterSpacing = px < 7.5 ? "0.02em" : "";
+  // Small type wants more leading, not less. Leading costs height, and the
+  // pane scrolls vertically anyway, so it is the one legibility lever here
+  // that does not cost width.
+  pre.style.lineHeight = px < 9 ? "1.80" : px < 11 ? "1.64" : "1.52";
 
   lastPx = px;
-  els.zPct.textContent = px.toFixed(1) + "px" + (weight > 400 ? " b" : "") + " · " + cols + "c";
+  els.zPct.textContent = px.toFixed(1) + "px · " + cols + "c";
 }
 
 function renderText() {
@@ -484,6 +501,10 @@ function render(d) {
 
 /* ---------------- transport ---------------- */
 async function send(blob, name) {
+  // The loader and the page preview both live in the pane wide mode hides,
+  // and a new file is exactly when you want to watch it arrive. Paging
+  // through a document already loaded does not break out of wide.
+  if (els.main.classList.contains("wide")) toggleWide();
   busy(true, name.toLowerCase().endsWith(".pdf") ? "Rasterising the PDF" : "Reading the page");
   els.pick.disabled = els.sample.disabled = true;
   try {
@@ -579,13 +600,26 @@ els.zoomBox.addEventListener("click", e => {
   if (b.id === "zIn")  step(+1, e.shiftKey);
   if (b.id === "zOut") step(-1, e.shiftKey);
   if (b.id === "zFit") { zoom = null; applyZoom(); }
+  if (b.id === "zWide") toggleWide();
 });
+
+/* Collapsing the page pane changes the text pane's width, and the fit size
+   is computed from that width. The grid has not relaid out yet when the
+   click handler returns, so measuring now reads the old width: wait a
+   frame. */
+function toggleWide() {
+  const on = els.main.classList.toggle("wide");
+  els.zWide.classList.toggle("on", on);
+  els.zWide.textContent = on ? "Split" : "Wide";
+  requestAnimationFrame(() => { zoom = null; applyZoom(); });
+}
 
 addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" || !els.out.querySelector(".doc pre")) return;
   if (e.key === "+" || e.key === "=") { e.preventDefault(); step(+1, e.shiftKey); }
   if (e.key === "-" || e.key === "_") { e.preventDefault(); step(-1, e.shiftKey); }
   if (e.key === "0")                  { e.preventDefault(); zoom = null; applyZoom(); }
+  if (e.key === "w" || e.key === "W") { e.preventDefault(); toggleWide(); }
 });
 
 els.pPrev.onclick  = () => gotoPage(data.page - 1);
