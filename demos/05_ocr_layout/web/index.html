@@ -130,8 +130,10 @@ main{ flex:1; min-height:0; display:grid;
 .tabs .count{ display:inline-block; min-width:17px; margin-left:5px; padding:1px 6px; border-radius:100px;
               background:var(--teal); color:#fff; font-size:11px; font-weight:600; }
 .zoom{ margin-left:auto; display:flex; align-items:center; gap:4px; padding-right:4px; }
-.zoom button{ width:26px; height:26px; border:1px solid var(--line-2); border-radius:7px;
-              background:var(--paper); font-size:14px; line-height:1; padding:0; }
+.zoom button{ width:30px; height:28px; border:1px solid var(--line-2); border-radius:7px;
+              background:var(--paper); font-size:17px; font-weight:600; line-height:1; padding:0;
+              transition:background .2s, border-color .2s, color .2s; }
+.zoom button:active{ background:var(--blue); border-color:var(--blue); color:#fff; }
 .zoom button:hover:not(:disabled){ border-color:var(--blue); color:var(--blue); }
 .zoom button:disabled{ opacity:.3; cursor:default; }
 .zoom .pct{ font-variant-numeric:tabular-nums; }
@@ -423,8 +425,6 @@ function applyZoom() {
   pre.style.fontSize = px.toFixed(2) + "px";
   lastPx = px;
   els.zPct.textContent = px.toFixed(1) + "px · " + cols + "c";
-  els.zIn.disabled  = px >= MAX_PT - 0.01;
-  els.zOut.disabled = px <= MIN_PT + 0.01;
 }
 
 function renderText() {
@@ -620,19 +620,32 @@ els.tabs.forEach(b => b.onclick = () => {
 
 // Step by a ratio, not a flat pixel: +1px is a 12% jump at 8px and a 5%
 // jump at 20px, so a flat step feels inconsistent at both ends.
-function step(factor) {
-  const base = lastPx || 13;
-  zoom = Math.max(MIN_PT, Math.min(base * factor, MAX_PT));
+/* Read the size off the element itself. A module-level `lastPx` only has
+   to go stale once, after a tab switch or a re-render, for the control to
+   stop responding, and that is invisible from the outside. Whole-point
+   steps so one click is obviously a click. */
+function step(delta) {
+  const pre = els.out.querySelector(".doc pre");
+  if (!pre) return;
+  const now = parseFloat(getComputedStyle(pre).fontSize) || lastPx || 13;
+  zoom = Math.max(MIN_PT, Math.min(now + delta, MAX_PT));
   applyZoom();
 }
-els.zIn.addEventListener("click",  () => step(1.15));
-els.zOut.addEventListener("click", () => step(1 / 1.15));
-els.zFit.addEventListener("click", () => { zoom = null; applyZoom(); });
+
+// One delegated listener on the container, so the buttons keep working even
+// if the markup inside it is ever re-rendered.
+els.zoomBox.addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.id === "zIn")  step(+2);
+  if (b.id === "zOut") step(-2);
+  if (b.id === "zFit") { zoom = null; applyZoom(); }
+});
 
 addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" || !els.out.querySelector(".doc pre")) return;
-  if (e.key === "+" || e.key === "=") { e.preventDefault(); step(1.15); }
-  if (e.key === "-" || e.key === "_") { e.preventDefault(); step(1 / 1.15); }
+  if (e.key === "+" || e.key === "=") { e.preventDefault(); step(+2); }
+  if (e.key === "-" || e.key === "_") { e.preventDefault(); step(-2); }
   if (e.key === "0")                  { e.preventDefault(); zoom = null; applyZoom(); }
 });
 
