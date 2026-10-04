@@ -144,7 +144,6 @@ main.wide #pagePane{ display:none; }
 .zoom button:disabled{ opacity:.3; cursor:default; }
 /* after :hover, so the active toggle keeps its white label under the cursor */
 .zoom button.on, .zoom button.on:hover{ background:var(--blue); border-color:var(--blue); color:#fff; }
-.zoom .pct{ font-variant-numeric:tabular-nums; }
 .zoom .pct{ font-size:12.5px; color:var(--txt-3); min-width:82px; text-align:center;
             font-variant-numeric:tabular-nums; }
 
@@ -392,6 +391,13 @@ function charAdvance(pre) {
   return ADVANCE;
 }
 
+/* Font size only means something for the text tabs; Wide means something
+   on all of them, so it stays. */
+function zoomControls(on) {
+  els.zoomBox.hidden = false;
+  for (const n of [els.zIn, els.zOut, els.zFit, els.zPct]) n.hidden = !on;
+}
+
 const MIN_PT = 6, MAX_PT = 34;   // 6px is the floor: below that it stops being text
 const STEP = 0.2;                // the useful range here is a couple of points
                                  // wide, so whole-point steps skip straight
@@ -450,8 +456,37 @@ function renderText() {
   els.out.innerHTML = `<div class="sheet"><div class="doc"><pre data-cols="${cols}" data-widest="${widest}" class="${tab==="flattened"?"flat":""}">${
     lines.map((l,i) => `<span class="ln" style="animation-delay:${Math.min(i*9,700)}ms">${esc(l)||"&nbsp;"}</span>`).join("")
   }</pre></div></div>`;
-  els.zoomBox.hidden = false;
+  zoomControls(true);
   applyZoom();
+}
+
+function renderFigures() {
+  const fs = data.figures || [];
+  zoomControls(false);
+  if (!fs.length) {
+    els.out.innerHTML = `<div class="sheet"><div class="none">No figures on this page.<br><br>
+      Figures are found by subtraction: threshold the page to ink, paint out every
+      box the recogniser already read, and whatever survives is not text.</div></div>`;
+    return;
+  }
+  els.out.innerHTML = `<div class="sheet"><div class="tblwrap">
+    <p class="fignote">Charts, logos, stamps and signatures, found by subtracting the
+    recognised text from the page ink. Labels are the text sitting in and around each
+    figure &mdash; a chart's title and axes. Reading the plotted <em>values</em> off a chart is a
+    different problem and needs a chart-specific model; this does not attempt it.</p>
+    ${fs.map((f,n) => {
+      const [x,y,w,h] = f.bbox;
+      return `<div class="figrow">
+        <img src="/api/figure/${data.token}/${n}.png" alt="figure ${n+1}" loading="lazy">
+        <div>
+          <h4>Figure ${n+1}<em>${f.kind}</em></h4>
+          <p class="figmeta">${w}&times;${h}px at (${x}, ${y}) &middot; ${f.area_pct}% of the page &middot; ink ${f.ink}</p>
+          ${f.labels.length ? `<p class="figlabels">${f.labels.map(t=>`<span>${esc(t)}</span>`).join("")}</p>` : `<p class="figmeta">no text inside</p>`}
+          <a class="figdl" href="/api/figure/${data.token}/${n}.png" download>Download PNG</a>
+        </div>
+      </div>`;
+    }).join("")}
+  </div></div>`;
 }
 
 function renderPane(){
@@ -611,15 +646,19 @@ function toggleWide() {
   const on = els.main.classList.toggle("wide");
   els.zWide.classList.toggle("on", on);
   els.zWide.textContent = on ? "Split" : "Wide";
+  // applyZoom is a no-op when the figures tab is showing, which is correct:
+  // the figure grid is fluid and needs no measurement.
   requestAnimationFrame(() => { zoom = null; applyZoom(); });
 }
 
 addEventListener("keydown", e => {
-  if (e.target.tagName === "INPUT" || !els.out.querySelector(".doc pre")) return;
+  if (e.target.tagName === "INPUT") return;
+  // Wide works on any tab. The stepper does not, so it keeps its guard.
+  if (e.key === "w" || e.key === "W") { if (data) { e.preventDefault(); toggleWide(); } return; }
+  if (!els.out.querySelector(".doc pre")) return;
   if (e.key === "+" || e.key === "=") { e.preventDefault(); step(+1, e.shiftKey); }
   if (e.key === "-" || e.key === "_") { e.preventDefault(); step(-1, e.shiftKey); }
   if (e.key === "0")                  { e.preventDefault(); zoom = null; applyZoom(); }
-  if (e.key === "w" || e.key === "W") { e.preventDefault(); toggleWide(); }
 });
 
 els.pPrev.onclick  = () => gotoPage(data.page - 1);
