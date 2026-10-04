@@ -1,5 +1,5 @@
-/* Demos page. Reads the same data.js the home page does, plus content.json
-   so a video added through the editor shows up here too. */
+/* Demos page. Cards, player and counter come from views.js; this file
+   loads content, renders, and runs the page chrome. */
 
 const $  = (s,r=document) => r.querySelector(s);
 const $$ = (s,r=document) => Array.from(r.querySelectorAll(s));
@@ -33,41 +33,8 @@ async function loadContent(){
 
 document.documentElement.classList.add("js");
 
-/* ---------------------------------------------------------------- render */
-function card(d, i){
-  const src = (SITE.videos || {})[d.id];
-  const e = src ? embedUrl(src) : null;
-  const poster = e
-    ? (e.kind === "frame"
-        ? `<div class="dc-play"><span class="play-big" aria-hidden="true"></span><span>Watch the demo</span></div>`
-        : `<video src="${e.url}" muted playsinline preload="metadata"></video>
-           <div class="dc-play"><span class="play-big" aria-hidden="true"></span><span>Watch the demo</span></div>`)
-    : `<div class="dc-soon">
-         <div class="dc-flow">${d.flow.map(s => `<span>${s}</span>`).join('<i aria-hidden="true"></i>')}</div>
-         <span class="dc-soon-tag">Recording coming soon</span>
-       </div>`;
-
-  return `
-  <article class="dcard reveal" style="--c:${d.c};--i:${i}" data-spot>
-    <div class="dc-media${src ? " has-video" : ""}" ${src ? `data-demo="${d.id}" role="button" tabindex="0" aria-label="Play ${d.title}"` : ""}>
-      ${poster}
-    </div>
-    <div class="dc-body">
-      <span class="dc-tag">${d.tag}</span>
-      <h2>${d.title}</h2>
-      <p>${d.line}</p>
-      <ul class="dc-points">${d.points.map(p => `<li>${p}</li>`).join("")}</ul>
-      <div class="chips">${d.tech.map(t => `<span class="chip">${t}</span>`).join("")}</div>
-      <div class="dc-actions">
-        ${src ? `<button class="btn btn-sm demo-btn" data-demo="${d.id}"><span class="play" aria-hidden="true"></span>Watch demo</button>` : ""}
-        <a class="btn btn-sm" href="${d.src}" target="_blank" rel="noopener">View the code <span class="arr" aria-hidden="true">↗</span></a>
-      </div>
-    </div>
-  </article>`;
-}
-
 function render(){
-  $("#demoGrid").innerHTML = SITE.demos.map(card).join("");
+  renderDemos();
   $("#yr").textContent = new Date().getFullYear();
 
   const p = SITE.profile;
@@ -76,7 +43,6 @@ function render(){
   $("#brandMark").textContent = p.name.split(/\s+/).map(w => w[0]).join("").slice(0,2).toUpperCase();
 
   observeReveals();
-  bind();
 }
 
 /* ---------------------------------------------------------------- motion */
@@ -116,77 +82,4 @@ addEventListener("scroll", () => {
   });
 }, { passive:true });
 
-function bind(){
-  if(matchMedia("(pointer:fine)").matches){
-    $$("[data-spot]").forEach(el => {
-      el.addEventListener("pointermove", ev => {
-        const r = el.getBoundingClientRect();
-        el.style.setProperty("--mx",(ev.clientX-r.left)+"px");
-        el.style.setProperty("--my",(ev.clientY-r.top)+"px");
-      });
-    });
-  }
-
-  // Preview on hover: a muted loop is a much better poster than a still.
-  $$(".dc-media.has-video video").forEach(v => {
-    const card = v.closest(".dc-media");
-    card.addEventListener("pointerenter", () => { v.currentTime = 0; v.play().catch(() => {}); });
-    card.addEventListener("pointerleave", () => v.pause());
-  });
-
-  $("#demoGrid").addEventListener("click", e => {
-    const b = e.target.closest("[data-demo]");
-    if(b) openDemo(b.dataset.demo);
-  });
-  $("#demoGrid").addEventListener("keydown", e => {
-    if(e.key !== "Enter" && e.key !== " ") return;
-    const b = e.target.closest("[data-demo]");
-    if(b){ e.preventDefault(); openDemo(b.dataset.demo); }
-  });
-}
-
-/* ---------------------------------------------------------------- player */
-function openDemo(id){
-  const d = SITE.demos.find(x => x.id === id);
-  const src = (SITE.videos || {})[id];
-  if(!d || !src) return;
-
-  const modal = $("#demo");
-  modal.style.setProperty("--c", d.c);
-  $("#demoTitle").textContent = d.title;
-  $("#demoKick").textContent = d.tag;
-  const e = embedUrl(src);
-  $("#demoStage").innerHTML = e.kind === "frame"
-    ? `<iframe src="${e.url}" title="${d.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
-    : `<video src="${e.url}" controls autoplay playsinline></video>`;
-
-  modal.hidden = false;
-  requestAnimationFrame(() => modal.classList.add("on"));
-  if(lenis) lenis.stop();
-  $(".demo-close").focus();
-}
-
-function closeDemo(){
-  const modal = $("#demo");
-  if(!modal || modal.hidden) return;
-  modal.classList.remove("on");
-  if(lenis) lenis.start();
-  setTimeout(() => { modal.hidden = true; $("#demoStage").innerHTML = ""; }, 480);
-}
-
-$("#demo").addEventListener("click", e => { if(e.target.closest("[data-close]")) closeDemo(); });
-addEventListener("keydown", e => { if(e.key === "Escape") closeDemo(); });
-
-document.addEventListener("click", e => {
-  const a = e.target.closest('a[href^="#"]');
-  if(!a) return;
-  const id = a.getAttribute("href");
-  if(id.length < 2) return;
-  e.preventDefault();
-  const el = document.querySelector(id);
-  if(!el) return;
-  if(lenis) lenis.scrollTo(el, { offset:-96 });
-  else el.scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
-});
-
-loadContent().then(render);
+loadContent().then(() => { render(); loadCounts(); });

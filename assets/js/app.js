@@ -70,6 +70,7 @@ function renderHero(){
   }
 
   $("#lede").innerHTML = p.lede;
+  if(p.resume) $("#resumeBtn").href = p.resume;
   $("#portraitTag").innerHTML =
     `<span>${p.location}</span>` +
     (p.available ? `<span class="live"><b aria-hidden="true"></b>Available</span>` : "");
@@ -113,27 +114,14 @@ function renderTimeline(){
 }
 
 function renderRoles(){
-  $("#roles").innerHTML = SITE.roles.map((r,i) => {
-    const jump = (r.systems||[]).length
-      ? `<div class="jump"><span>Systems built here:</span>${r.systems.map(id => {
-          const c = SITE.cases.find(x => x.id === id);
-          return c ? `<a href="#case-${id}">${c.title} →</a>` : "";
-        }).join("")}</div>`
-      : "";
-    return `
-    <article class="role${i===0?" open":""}" id="role-${i}" style="--c:${r.c}">
-      <button class="role-head" aria-expanded="${i===0}">
-        <span class="role-id"><span class="role-co">${r.co}</span><span class="role-title">${r.title}</span></span>
-        <span class="role-when">${r.when}<small>${r.where}</small></span>
-        <span class="role-toggle" aria-hidden="true"></span>
-      </button>
-      <div class="role-body"><div><div class="role-inner">
-        <ul class="bullets">${r.bullets.map(b => `<li>${b}</li>`).join("")}</ul>
-        ${jump}
-        <div class="chips">${r.tech.map(t => `<span class="chip">${t}</span>`).join("")}</div>
-      </div></div></div>
-    </article>`;
-  }).join("");
+  $("#roles").innerHTML = SITE.roles.map((r,i) => `
+    <article class="xp-row" id="role-${i}" style="--c:${r.c}">
+      <div class="xp-main">
+        <h3 class="xp-co">${r.co}<span>${r.title}</span><small>${r.when} · ${r.where}</small></h3>
+        <p>${r.line || ""}</p>
+      </div>
+      ${r.metric ? `<span class="xp-metric">${r.metric}</span>` : ""}
+    </article>`).join("");
 }
 
 const FUSION_HTML = `
@@ -179,68 +167,35 @@ const FUSION_HTML = `
   </div>
 </div>`;
 
-function demoHTML(c){
-  const src = (SITE.videos || {})[c.id];
-  if(!src) return "";
-  const player = /^https?:\/\//.test(src)
-    ? `<iframe src="${src}" title="${c.title} demo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`
-    : `<video src="${src}" controls playsinline preload="metadata"></video>`;
-  return `<div class="demo"><div class="demo-frame">${player}</div><p class="demo-cap">Demo: ${c.title}</p></div>`;
-}
-
-function hasDemo(c){ return Boolean((SITE.videos || {})[c.id]); }
-
-function demoButton(c){
-  if(!hasDemo(c)) return "";
-  return `<button class="btn btn-sm demo-btn" data-demo="${c.id}"><span class="play" aria-hidden="true"></span>Watch demo</button>`;
-}
-
 function renderCases(){
-  $("#cases").innerHTML = SITE.cases.map((c,i) => `
-    <article class="case${c.feature?" feature":""} reveal" id="case-${c.id}" style="--c:${c.c};--i:${Math.min(i,4)}" data-spot>
-      <div class="case-stripe"></div>
-      <div class="case-top">
-        <div>
-          <div class="case-kick"><span class="org">${c.org}</span><span class="dot"></span><span>${c.year}</span><span class="dot"></span><span>${c.kind}</span></div>
-          <h3 class="case-title">${c.title}</h3>
-          <p class="case-lede">${c.lede}</p>
-          ${c.win ? `<p class="case-win"><span class="tick" aria-hidden="true"></span>${c.win}</p>` : ""}
-        </div>
-        ${c.badge ? `<span class="case-badge">${c.badge}</span>` : ""}
+  const feature = SITE.cases.find(c => c.fusion);
+  const rest = SITE.cases.filter(c => !c.fusion);
+  $("#cases").innerHTML =
+    (feature ? `
+    <article class="proj-feature reveal" style="--c:${feature.c}">
+      <div class="pf-head">
+        <span class="pc-kind"><b>${feature.org}</b> · ${feature.kind}</span>
+        <h3>${feature.title}</h3>
+        <p>${feature.lede}</p>
       </div>
-      <div class="flow">${c.flow.map((s,j) => {
-        const hot = (c.hot||[]).includes(j) ? " hot" : "";
-        const arr = j < c.flow.length-1 ? '<span class="flow-arr" aria-hidden="true"></span>' : "";
-        return `<span class="flow-step${hot}">${s}</span>${arr}`;
-      }).join("")}</div>
-
-      <div class="case-more${c.fusion ? " open" : ""}">
-        <button class="more-btn" aria-expanded="${c.fusion ? "true" : "false"}">
-          <span class="chev" aria-hidden="true"></span>How it works
-        </button>
-        <div class="case-detail"><div>
-          <div class="case-grid">
-            <div class="cg"><h4>Problem</h4><p>${c.problem}</p></div>
-            <div class="cg"><h4>Approach</h4><p>${c.approach}</p></div>
-            <div class="cg win"><h4>Result</h4><p>${c.result}</p></div>
-          </div>
-          ${c.fusion ? FUSION_HTML : ""}
-        </div></div>
-      </div>
-      <div class="case-foot">
-        <div class="chips">${c.tech.map(t => `<span class="chip">${t}</span>`).join("")}</div>
-        <div class="case-actions">
-          ${demoButton(c)}
-          ${c.link ? `<a class="btn btn-sm" href="${c.link}" target="_blank" rel="noopener">Source <span class="arr" aria-hidden="true">↗</span></a>` : ""}
-        </div>
-      </div>
-    </article>`).join("");
+      ${FUSION_HTML}
+    </article>` : "") + `
+    <div class="pgrid">${rest.map((c,i) => `
+      <article class="pcard reveal" style="--c:${c.c};--i:${i % 3}">
+        <span class="pc-kind"><b>${c.org}</b> · ${c.kind}</span>
+        <h3>${c.title}</h3>
+        ${c.win ? `<p class="pc-win">${c.win}</p>` : ""}
+        <p>${c.lede}</p>
+        <div class="chips">${(c.tech||[]).map(t => `<span class="chip">${t}</span>`).join("")}</div>
+        ${c.link ? `<a class="pc-link" href="${c.link}" target="_blank" rel="noopener" aria-label="Source for ${c.title}">↗</a>` : ""}
+      </article>`).join("")}
+    </div>`;
 }
 
 function renderStack(){
   $("#stackGrid").innerHTML = SITE.stack.map(g => `
-    <div class="stack-col" style="--c:${g.c}">
-      <h3>${g.h}<span>${g.items.length}</span></h3>
+    <div class="skill-row" style="--c:${g.c}">
+      <h3>${g.h}</h3>
       <div class="chips">${g.items.map(t => `<span class="chip">${t}</span>`).join("")}</div>
     </div>`).join("");
 }
@@ -270,7 +225,7 @@ function renderLinks(){
 
 function renderRail(){
   $("#rail").innerHTML = Object.entries(SECTION_COLOR).map(([href,c]) => {
-    const label = href === "#top" ? "Intro" : href.slice(1);
+    const label = { "#top":"Intro", "#work":"Experience" }[href] || href.slice(1);
     return `<a href="${href}" style="--c:${c}"><span class="dot"></span><span class="lbl">${label[0].toUpperCase()+label.slice(1)}</span></a>`;
   }).join("");
   for(const [href,c] of Object.entries(SECTION_COLOR)){
@@ -280,7 +235,7 @@ function renderRail(){
 }
 
 function renderAll(){
-  renderHero(); renderTimeline(); renderRoles(); renderCases();
+  renderHero(); renderDemos(); renderTimeline(); renderRoles(); renderCases();
   renderStack(); renderPosts(); renderLinks(); renderRail();
   $("#yr").textContent = new Date().getFullYear();
   bindDynamic();
@@ -349,50 +304,20 @@ function observeReveals(){
 }
 
 function bindDynamic(){
-  $("#roles").onclick = e => {
-    const head = e.target.closest(".role-head");
-    if(!head) return;
-    const role = head.closest(".role");
-    const open = role.classList.toggle("open");
-    head.setAttribute("aria-expanded", String(open));
-  };
-
   $("#timeline").onclick = e => {
     const row = e.target.closest("[data-role]");
     if(!row) return;
     const role = $("#role-" + row.dataset.role);
     if(!role) return;
-    role.classList.add("open");
-    role.querySelector(".role-head").setAttribute("aria-expanded","true");
     goTo(role);
+    role.classList.add("flash");
+    setTimeout(() => role.classList.remove("flash"), 1400);
   };
 
   $("#posts").onclick = e => {
     const b = e.target.closest("[data-post]");
     if(b) openPost(+b.dataset.post);
   };
-
-  $("#cases").addEventListener("click", e => {
-    const d = e.target.closest("[data-demo]");
-    if(d){ openDemo(d.dataset.demo); return; }
-
-    const m = e.target.closest(".more-btn");
-    if(m){
-      const wrap = m.closest(".case-more");
-      const open = wrap.classList.toggle("open");
-      m.setAttribute("aria-expanded", String(open));
-    }
-  });
-
-  if(matchMedia("(pointer:fine)").matches){
-    $$("[data-spot]").forEach(card => {
-      card.addEventListener("pointermove", ev => {
-        const r = card.getBoundingClientRect();
-        card.style.setProperty("--mx",(ev.clientX-r.left)+"px");
-        card.style.setProperty("--my",(ev.clientY-r.top)+"px");
-      });
-    });
-  }
 
   initFusion();
   onScroll();
@@ -466,40 +391,6 @@ function closePost(){
 $("#reader").addEventListener("click", e => { if(e.target.closest("[data-close]")) closePost(); });
 addEventListener("keydown", e => { if(e.key === "Escape" && !$("#reader").hidden) closePost(); });
 
-/* ---------------- demo player ---------------- */
-function openDemo(id){
-  const c = SITE.cases.find(x => x.id === id);
-  const src = (SITE.videos || {})[id];
-  if(!c || !src) return;
-
-  const modal = $("#demo");
-  modal.style.setProperty("--c", c.c);
-  $("#demoTitle").textContent = c.title;
-  $("#demoKick").textContent = `${c.org} · ${c.kind}`;
-  const e = embedUrl(src);
-  $("#demoStage").innerHTML = e.kind === "frame"
-    ? `<iframe src="${e.url}" title="${c.title} demo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
-    : `<video src="${e.url}" controls autoplay playsinline></video>`;
-
-  modal.hidden = false;
-  requestAnimationFrame(() => modal.classList.add("on"));
-  if(lenis) lenis.stop();
-  $(".demo-close").focus();
-}
-
-function closeDemo(){
-  const modal = $("#demo");
-  if(!modal || modal.hidden) return;
-  modal.classList.remove("on");
-  if(lenis) lenis.start();
-  // Clearing the stage stops playback; do it after the transition so the
-  // panel does not visibly empty itself on the way out.
-  setTimeout(() => { modal.hidden = true; $("#demoStage").innerHTML = ""; }, 480);
-}
-
-$("#demo").addEventListener("click", e => { if(e.target.closest("[data-close]")) closeDemo(); });
-addEventListener("keydown", e => { if(e.key === "Escape") closeDemo(); });
-
 /* ---------------- toast + copy ---------------- */
 const toast = $("#toast");
 let toastTimer;
@@ -514,13 +405,6 @@ document.addEventListener("click", async e => {
   if(!b) return;
   try{ await navigator.clipboard.writeText(b.dataset.copy); say("Copied: " + b.dataset.copy); }
   catch{ say("Copy blocked: " + b.dataset.copy); }
-});
-
-$("#resumeBtn").addEventListener("click", async e => {
-  const url = SITE.profile.resume;
-  try{ const r = await fetch(url, { method:"HEAD" }); if(r.ok){ e.currentTarget.href = url; return; } }catch{}
-  e.preventDefault();
-  say("Résumé not uploaded yet. Email kgenga2002@gmail.com");
 });
 
 /* ---------------- hero ribbons ---------------- */
@@ -593,6 +477,7 @@ $("#resumeBtn").addEventListener("click", async e => {
    ============================================================ */
 loadContent().then(() => {
   renderAll();
+  loadCounts();
   if(hasDraft) showDraftBar();
   if(location.hash === "#admin") openAdmin();
   initAdmin();

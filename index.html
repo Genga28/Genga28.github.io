@@ -10,16 +10,16 @@
 <meta property="og:type" content="profile"><!--WRAP-->
 <meta property="og:url" content="https://genga28.github.io/"><!--WRAP-->
 <meta property="og:site_name" content="Genga K"><!--WRAP-->
-<meta property="og:title" content="Genga K — Applied AI Engineer | Voice AI, Document AI, Computer Vision"><!--WRAP-->
+<meta property="og:title" content="Genga K, Applied AI Engineer | Voice AI, Document AI, Computer Vision"><!--WRAP-->
 <meta property="og:description" content="3+ years building AI that runs in production. 5,000 documents a day automated, 50 live sessions at once, 10 systems shipped."><!--WRAP-->
 <meta property="og:image" content="https://genga28.github.io/assets/img/og.png"><!--WRAP-->
 <meta property="og:image:width" content="1200"><!--WRAP-->
 <meta property="og:image:height" content="630"><!--WRAP-->
 <meta name="twitter:card" content="summary_large_image"><!--WRAP-->
-<meta name="twitter:title" content="Genga K — Applied AI Engineer"><!--WRAP-->
+<meta name="twitter:title" content="Genga K, Applied AI Engineer"><!--WRAP-->
 <meta name="twitter:description" content="Voice agents, document automation and real-time video analysis. Built end to end, running live."><!--WRAP-->
 <meta name="theme-color" content="#0A0D12"><!--WRAP-->
-<title>Genga K — Applied AI Engineer | Voice AI, RAG &amp; Computer Vision</title>
+<title>Genga K | Applied AI Engineer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -73,12 +73,10 @@
       <span><span id="brandName">Genga K</span><small id="brandKicker">Applied AI Engineer</small></span>
     </a>
     <nav class="nav-links" id="navLinks" aria-label="Sections">
-      <a href="#work">Work</a>
-      <a href="#systems">Systems</a>
-      <a href="demos.html" class="hot">Demos</a>
-      <a href="#stack">Stack</a>
+      <a href="#demos" class="hot">Demos</a>
+      <a href="#work">Experience</a>
+      <a href="#projects">Projects</a>
       <a href="#writing">Writing</a>
-      <a href="#about">About</a>
       <a href="#contact">Contact</a>
     </nav>
     <div class="nav-right">
@@ -104,11 +102,16 @@
         <h1 class="display" id="headline"></h1>
         <p class="lede" id="lede"></p>
         <div class="cta-row">
-          <a class="btn btn-primary" href="demos.html">See what I built <span class="arr" aria-hidden="true">→</span></a>
-          <a class="btn" id="resumeBtn" href="GENGA_K_RESUME.pdf" target="_blank" rel="noopener">Résumé</a>
+          <a class="btn btn-primary" href="#demos">Watch the demos <span class="arr" aria-hidden="true">→</span></a>
+          <a class="btn" id="resumeBtn" href="assets/pdfs/GENGA_K_RESUME.pdf" target="_blank" rel="noopener" data-resume>Résumé</a>
           <a class="btn" href="https://www.linkedin.com/in/gengak" target="_blank" rel="noopener">LinkedIn</a>
           <a class="btn" href="https://github.com/Genga28" target="_blank" rel="noopener">GitHub</a>
         </div>
+        <p class="live-stats" aria-live="polite">
+          <span data-count="visits" hidden><b>0</b> portfolio visits</span>
+          <span data-count="demo-total" hidden><b>0</b> demo views</span>
+          <span data-count="resume" hidden><b>0</b> résumé opens</span>
+        </p>
       </div>
       <aside class="hero-portrait">
         <div class="portrait">
@@ -122,6 +125,20 @@
   </div>
 </section>
 
+<!-- ============================ DEMOS =========================== -->
+<section class="sec" id="demos">
+  <div class="wrap">
+    <div class="sec-head row reveal">
+      <div>
+        <p class="eyebrow">Demos</p>
+        <h2 class="sec-title">Watch it run.</h2>
+      </div>
+      <a class="sec-link" href="https://github.com/Genga28/Genga28.github.io/tree/main/demos" target="_blank" rel="noopener">All source on GitHub <span class="arr" aria-hidden="true">↗</span></a>
+    </div>
+    <div class="vgrid" id="demoGrid"></div>
+  </div>
+</section>
+
 <!-- ============================ WORK ============================ -->
 <section class="sec" id="work">
   <div class="wrap">
@@ -130,19 +147,18 @@
       <h2 class="sec-title">Where I&rsquo;ve worked.</h2>
     </div>
     <div class="tl-scroll reveal"><div class="tl" id="timeline"></div></div>
-    <div class="roles reveal" id="roles"></div>
+    <div class="xp reveal" id="roles"></div>
   </div>
 </section>
 
-<!-- =========================== SYSTEMS ========================== -->
-<section class="sec" id="systems">
+<!-- =========================== PROJECTS ========================= -->
+<section class="sec" id="projects">
   <div class="wrap">
     <div class="sec-head reveal">
-      <p class="eyebrow">Selected systems</p>
-      <h2 class="sec-title">Ten systems, shipped.</h2>
-      <p class="sec-sub">The first one is interactive. Drag the sliders.</p>
+      <p class="eyebrow">More projects</p>
+      <h2 class="sec-title">Also shipped.</h2>
     </div>
-    <div class="cases" id="cases"></div>
+    <div id="cases"></div>
   </div>
 </section>
 
@@ -153,7 +169,7 @@
       <p class="eyebrow">Toolchain</p>
       <h2 class="sec-title">What I reach for.</h2>
     </div>
-    <div class="stack reveal" id="stackGrid"></div>
+    <div class="skills reveal" id="stackGrid"></div>
   </div>
 </section>
 
@@ -168,53 +184,20 @@
   </div>
 </section>
 
-<!-- ============================ ABOUT =========================== -->
-<section class="sec" id="about">
-  <div class="wrap">
-    <div class="sec-head reveal">
-      <p class="eyebrow">Background</p>
-      <h2 class="sec-title">Short version.</h2>
-    </div>
-    <div class="about-body reveal">
-      <p>
-        M.Sc. in Decision and Computing Sciences, <strong>9.45 CGPA</strong>. Three years shipping AI
-        at Jobtwine, Yubi and EXL Health. I care about the half nobody demos:
-        <strong>calibration, guardrails, latency and evaluation you can defend</strong>.
-      </p>
-
-      <dl class="facts">
-        <div class="fact">
-          <dt>Education</dt>
-          <dd><b>Coimbatore Institute of Technology</b>M.Sc. Decision and Computing Sciences, 9.45 CGPA<em>Sept 2020 – Apr 2025</em></dd>
-        </div>
-        <div class="fact">
-          <dt>Publication</dt>
-          <dd><b>Logistics Optimization for E-commerce</b>Cut delivery overhead 20% with demand forecasting and spatial clustering.<em>IJPREMS</em></dd>
-        </div>
-        <div class="fact">
-          <dt>Teaching</dt>
-          <dd><b>Big Data with PySpark</b>Hands-on sessions for 60+ students at Vellammal Engineering College.</dd>
-        </div>
-      </dl>
-
-      <ul class="awards">
-        <li><span>450+</span><div>LeetCode problems. 3 Gold badges on HackerRank.</div></li>
-        <li><span>2nd</span><div>PitchDeck runner-up, GenAlpha chatbot concept.</div></li>
-        <li><span>2nd</span><div>Tell a Tale, Melinia: encryption and BI analytics.</div></li>
-        <li><span>100K</span><div>Tata Virtual Internship: EDA across 100,000+ points.</div></li>
-      </ul>
-    </div>
-  </div>
-</section>
-
 <!-- =========================== CONTACT ========================== -->
 <section class="sec" id="contact">
   <div class="wrap">
-    <div class="contact">
+    <div class="facts-strip reveal" id="about">
+      <div class="fs"><b>9.45</b><span>CGPA, M.Sc. Decision &amp; Computing Sciences, CIT</span></div>
+      <div class="fs"><b>450+</b><span>LeetCode problems, 3 HackerRank gold badges</span></div>
+      <div class="fs"><b>20%</b><span>Delivery cost cut, published in IJPREMS</span></div>
+      <div class="fs"><b>60+</b><span>Students taught Big Data with PySpark</span></div>
+    </div>
+    <div class="contact" style="margin-top:clamp(56px,7vw,96px)">
       <div class="reveal">
         <p class="eyebrow">Contact</p>
         <h2 class="big">Got something that has to <em>actually work</em>?</h2>
-        <p class="sec-sub">Open to AI/ML engineering roles. Fastest reply is email.</p>
+        <p class="sec-sub">Open to AI/ML engineering roles. Email is fastest.</p>
         <div class="cta-row" style="animation:none;opacity:1;margin-top:28px">
           <a class="btn btn-primary" href="mailto:kgenga2002@gmail.com?subject=Let%27s%20talk">Email me <span class="arr" aria-hidden="true">→</span></a>
           <button class="btn" data-copy="kgenga2002@gmail.com">Copy address</button>
@@ -230,7 +213,7 @@
 <footer class="footer">
   <div class="wrap footer-inner">
     <span>© <span id="yr"></span> Genga K, Bengaluru, India</span>
-    <span><a href="demos.html">Demos</a> &nbsp;·&nbsp; <a href="#top">Back to top ↑</a> &nbsp;·&nbsp; <a href="#" data-admin-open>Editor</a></span>
+    <span><a href="#demos">Demos</a> &nbsp;·&nbsp; <a href="#top">Back to top ↑</a> &nbsp;·&nbsp; <a href="#" data-admin-open>Editor</a></span>
   </div>
 </footer>
 
@@ -262,6 +245,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js"></script>
 <script src="assets/js/data.js"></script>
+<script src="assets/js/views.js"></script>
 <script src="assets/js/admin.js"></script>
 <script src="assets/js/app.js"></script>
 

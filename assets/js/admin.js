@@ -283,17 +283,17 @@ function renderVideosTab(body){
       YouTube, Vimeo or Loom all work. A local path like <code>assets/video/proctor.mp4</code>
       works too. Leave blank for no player.<br>
       <b>Drive only:</b> set the file to <i>Anyone with the link</i> or viewers get a sign-in page.</small></div>
-    ${SITE.cases.map(c => `
+    ${SITE.demos.map(c => `
       <div class="fld">
         <label for="vid-${c.id}">${c.title}</label>
         <input id="vid-${c.id}" type="text" data-vid="${c.id}">
       </div>`).join("")}`;
-  SITE.cases.forEach(c => { $("#vid-"+c.id).value = (SITE.videos||{})[c.id] || ""; });
+  SITE.demos.forEach(c => { $("#vid-"+c.id).value = (SITE.videos||{})[c.id] || ""; });
   body.oninput = e => {
     const el = e.target.closest("[data-vid]");
     if(!el) return;
     SITE.videos = { ...SITE.videos, [el.dataset.vid]: el.value.trim() };
-    renderCases(); bindDynamic(); observeReveals();
+    renderDemos(); observeReveals();
   };
 }
 
