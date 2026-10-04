@@ -125,18 +125,22 @@ def process(image_path: Path, width: int, height: int, *,
 
     if not boxes:
         return {**common, "boxes": [], "preserved": "", "flattened": "", "tables": [],
-                "analysis": {**L.analyse([]), "tables": 0, "table_rows": 0},
+                "figures": [],
+                "analysis": {**L.analyse([]), "tables": 0, "table_rows": 0, "figures": 0},
                 "token": "", "verdict": "Nothing detected on this page."}
 
     preserved = L.preserve(boxes)
     flattened = L.flatten(boxes)
     analysis = L.analyse(boxes)
     tables = L.detect_tables(boxes)
+    figures = L.detect_figures(str(image_path), boxes)
     analysis["tables"] = len(tables)
     analysis["table_rows"] = sum(len(t["rows"]) for t in tables)
+    analysis["figures"] = len(figures)
 
     token = uuid.uuid4().hex[:8]
-    _last[token] = {"text": preserved, "tables": tables}
+    _last[token] = {"text": preserved, "tables": tables,
+                    "figures": figures, "image": str(image_path)}
 
     cols = analysis["columns"]
     verdict = (
@@ -150,8 +154,8 @@ def process(image_path: Path, width: int, height: int, *,
                     else f" {len(tables)} tables pulled out as grids.")
 
     return {**common, "boxes": L.to_payload(boxes), "preserved": preserved,
-            "flattened": flattened, "tables": tables, "analysis": analysis,
-            "token": token, "verdict": verdict}
+            "flattened": flattened, "tables": tables, "figures": figures,
+            "analysis": analysis, "token": token, "verdict": verdict}
 
 
 # ==========================================================================
@@ -251,6 +255,24 @@ async def pages_zip(doc: str):
         buf.getvalue(), media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{stem}_pages.zip"'},
     )
+
+
+@app.get("/api/figure/{token}/{n}.png")
+async def figure_crop(token: str, n: int):
+    """Crop one detected figure out of the page at full resolution."""
+    got = _last.get(token)
+    if got is None or n >= len(got.get("figures", [])):
+        raise HTTPException(404, "no such figure")
+
+    from PIL import Image
+    x, y, w, h = got["figures"][n]["bbox"]
+    pad = 8
+    with Image.open(got["image"]) as im:
+        crop = im.crop((max(0, x - pad), max(0, y - pad),
+                        min(im.width, x + w + pad), min(im.height, y + h + pad)))
+        buf = io.BytesIO()
+        crop.save(buf, "PNG")
+    return Response(buf.getvalue(), media_type="image/png")
 
 
 @app.get("/api/export/{token}")

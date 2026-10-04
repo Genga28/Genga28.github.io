@@ -6,184 +6,237 @@
 <title>OCR layout studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-/* Light on purpose. This is a tool for looking at documents, and documents
-   are white: a dark viewer fights the thing you are trying to read. */
+/* Light on purpose: this is a tool for reading documents, and documents are
+   white. Chrome is kept deliberately small so the two page panes get the room. */
 :root{
-  --paper:#FFFFFF; --bg:#F1F4F8; --bg-2:#F8FAFC; --line:#E3E8EF; --line-2:#CBD5E1;
+  --paper:#FFFFFF; --bg:#EEF1F6; --bg-2:#F7F9FC; --desk:#DDE3EB;
+  --line:#E2E7EF; --line-2:#C7D0DD;
   --txt:#16202E; --txt-2:#55637A; --txt-3:#8A96A8;
   --blue:#2563EB; --violet:#7C3AED; --teal:#0D9488; --amber:#C2740A; --pink:#DB2777; --red:#DC2626;
   --ease:cubic-bezier(.16,1,.3,1);
   --fd:"Archivo",system-ui,sans-serif; --fb:"IBM Plex Sans",system-ui,sans-serif; --fm:"IBM Plex Mono",monospace;
-  --shadow:0 1px 2px rgba(16,32,54,.05), 0 8px 24px -12px rgba(16,32,54,.16);
+  --shadow:0 1px 2px rgba(16,32,54,.05), 0 8px 24px -14px rgba(16,32,54,.18);
 }
+/* Must come before any component rule, or a class with display: wins over it
+   and `el.hidden = true` silently does nothing. */
+[hidden]{ display:none !important; }
+
 *,*::before,*::after{ box-sizing:border-box; }
-body{ margin:0; background:var(--bg); color:var(--txt); font-family:var(--fb); font-size:15.5px; line-height:1.6; -webkit-font-smoothing:antialiased; }
-h1,h2,h3{ font-family:var(--fd); letter-spacing:-.03em; margin:0; }
+html,body{ height:100%; }
+body{ margin:0; background:var(--bg); color:var(--txt); font-family:var(--fb);
+      font-size:14.5px; line-height:1.55; -webkit-font-smoothing:antialiased;
+      display:flex; flex-direction:column; overflow:hidden; }
+h1,h2,h3,h4{ font-family:var(--fd); letter-spacing:-.03em; margin:0; }
 button{ font:inherit; color:inherit; background:none; border:0; cursor:pointer; }
 :focus-visible{ outline:2px solid var(--blue); outline-offset:2px; border-radius:4px; }
 
-.wash{ position:fixed; inset:-20% -10% auto; height:52vh; z-index:0; pointer-events:none; filter:blur(90px); opacity:.5;
-  background:radial-gradient(44% 60% at 20% 40%,#BFD4FF,transparent 70%),radial-gradient(40% 55% at 78% 26%,#DDD0FA,transparent 70%); }
-
-header{ position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:24px 34px; flex-wrap:wrap; }
-.title{ display:flex; align-items:center; gap:14px; }
-.mark{ width:38px; height:38px; border-radius:12px; background:linear-gradient(140deg,var(--blue),var(--violet) 55%,var(--pink)); box-shadow:0 6px 20px -6px rgba(124,58,237,.55); animation:spin 9s linear infinite; }
+/* ---------- compact top bar ---------- */
+.bar{ flex:none; display:flex; align-items:center; gap:16px; padding:10px 20px;
+      background:var(--paper); border-bottom:1px solid var(--line); flex-wrap:wrap; z-index:5; }
+.brand{ display:flex; align-items:center; gap:10px; margin-right:auto; }
+.mark{ width:28px; height:28px; border-radius:9px; flex:none;
+       background:linear-gradient(140deg,var(--blue),var(--violet) 55%,var(--pink));
+       box-shadow:0 4px 14px -5px rgba(124,58,237,.6); animation:spin 9s linear infinite; }
 @keyframes spin{ to{ transform:rotate(360deg); } }
-.title h1{ font-size:22px; font-weight:800; line-height:1.15; }
-.title p{ margin:0; font-size:13.5px; color:var(--txt-2); }
-.tools{ display:flex; gap:10px; flex-wrap:wrap; }
-.btn{ padding:11px 20px; border-radius:100px; border:1px solid var(--line-2); background:var(--paper); font-size:14.5px; font-weight:500; box-shadow:0 1px 2px rgba(16,32,54,.04); transition:transform .35s var(--ease), box-shadow .35s var(--ease), border-color .35s var(--ease); }
-.btn:hover{ transform:translateY(-2px); box-shadow:var(--shadow); border-color:#AFC0D6; }
-.btn.primary{ background:linear-gradient(135deg,var(--blue),var(--violet)); color:#fff; border-color:transparent; font-weight:600; box-shadow:0 10px 26px -12px rgba(124,58,237,.8); }
-.btn:disabled{ opacity:.5; cursor:wait; transform:none; }
+.brand b{ font-family:var(--fd); font-weight:800; font-size:16px; letter-spacing:-.025em; display:block; line-height:1.15; }
+.brand span{ font-size:12px; color:var(--txt-3); }
+.btn{ padding:8px 15px; border-radius:100px; border:1px solid var(--line-2); background:var(--paper);
+      font-size:13.5px; font-weight:500; white-space:nowrap;
+      transition:transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease); }
+.btn:hover:not(:disabled){ transform:translateY(-1px); box-shadow:var(--shadow); border-color:#A9B6C8; }
+.btn.primary{ background:linear-gradient(135deg,var(--blue),var(--violet)); color:#fff;
+              border-color:transparent; font-weight:600; box-shadow:0 8px 20px -10px rgba(124,58,237,.9); }
+.btn:disabled{ opacity:.5; cursor:wait; }
+.hint{ font-size:12.5px; color:var(--txt-3); }
 
-main{ position:relative; z-index:2; padding:0 34px 40px; display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
-@media (max-width:1100px){ main{ grid-template-columns:1fr; } }
+/* ---------- 50 / 50 ---------- */
+main{ flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px; }
+@media (max-width:1060px){ body{ overflow:auto; } main{ grid-template-columns:1fr; height:auto; } }
 
-.panel{ border:1px solid var(--line); border-radius:18px; background:var(--paper); overflow:hidden; box-shadow:var(--shadow); }
-.panel > h3{ font-size:12.5px; font-weight:600; text-transform:uppercase; letter-spacing:.09em; color:var(--txt-2); padding:15px 20px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:12px; align-items:center; background:var(--bg-2); }
+.pane{ min-width:0; min-height:0; display:flex; flex-direction:column;
+       border:1px solid var(--line); border-radius:14px; background:var(--paper);
+       overflow:hidden; box-shadow:var(--shadow); }
+.pane-head{ flex:none; display:flex; align-items:center; gap:10px; padding:0 12px;
+            border-bottom:1px solid var(--line); background:var(--bg-2); min-height:42px; flex-wrap:wrap; }
+.pane-head .lbl{ font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:.09em; color:var(--txt-2); }
+.pane-head .right{ margin-left:auto; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--txt-3); }
 
-.drop{ margin:0 34px 20px; border:1.5px dashed var(--line-2); border-radius:18px; padding:24px; display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; text-align:center; background:var(--paper); transition:border-color .35s var(--ease), background .35s var(--ease); position:relative; z-index:2; }
-.drop.over{ border-color:var(--blue); background:#EFF5FF; }
-.drop b{ font-weight:600; }
-.drop span{ color:var(--txt-2); font-size:14px; }
-
-/* Both panes are A4 sheets on a desk, so the uploaded page and the
-   reconstruction can be compared at the same size, like two printouts. */
-.desk{ position:relative; background:#E4E9F0; padding:22px; display:flex; justify-content:center;
-       min-height:420px; max-height:min(74vh,840px); overflow:auto; }
-.sheet{
-  position:relative; background:#fff; width:100%; max-width:560px; aspect-ratio:1 / 1.4142;
-  box-shadow:0 2px 6px rgba(16,32,54,.10), 0 18px 44px -20px rgba(16,32,54,.38);
-  border-radius:3px; flex:none; display:flex; align-items:center; justify-content:center; overflow:hidden;
-}
-.sheet.grow{ aspect-ratio:auto; min-height:360px; align-items:flex-start; }
+/* ---------- the desk and the A4 sheet ---------- */
+.desk{ position:relative; flex:1; min-height:0; background:var(--desk);
+       padding:16px; display:flex; justify-content:center; align-items:flex-start; overflow:auto; }
+.sheet{ position:relative; background:#fff; width:100%; max-width:100%;
+        box-shadow:0 1px 4px rgba(16,32,54,.12), 0 14px 36px -18px rgba(16,32,54,.45);
+        border-radius:2px; flex:none; }
+.sheet.page{ aspect-ratio:1 / 1.4142; display:flex; align-items:center; justify-content:center; overflow:hidden; }
 .pagebox{ position:relative; max-width:100%; max-height:100%; }
 .pagebox img{ display:block; width:100%; height:100%; }
 .pagebox svg{ position:absolute; inset:0; width:100%; height:100%; }
-.pager{ display:flex; align-items:center; justify-content:center; gap:10px; padding:11px 20px;
-        border-top:1px solid var(--line); background:var(--bg-2); font-size:14px; }
-.pager button{ width:34px; height:34px; border:1px solid var(--line-2); border-radius:9px; background:var(--paper);
-               line-height:1; transition:border-color .3s, color .3s, transform .3s var(--ease); }
-.pager button:hover:not(:disabled){ border-color:var(--blue); color:var(--blue); transform:translateY(-1px); }
-.pager button:disabled{ opacity:.35; cursor:default; }
-.pager .of{ color:var(--txt-2); font-variant-numeric:tabular-nums; min-width:112px; text-align:center; }
-.pager input{ width:52px; padding:6px 8px; text-align:center; border:1px solid var(--line-2); border-radius:8px;
-              font:inherit; font-variant-numeric:tabular-nums; }
-.pager a{ margin-left:8px; font-size:13.5px; color:var(--teal); text-decoration:none; border-bottom:1px solid transparent; }
-.pager a:hover{ border-bottom-color:var(--teal); }
-.a4tag{ position:absolute; right:10px; bottom:8px; font-size:11px; color:var(--txt-3); letter-spacing:.04em; z-index:3; }
-.bx{ fill:rgba(37,99,235,.08); stroke:var(--blue); stroke-width:1.1; opacity:0; transform-box:fill-box; transform-origin:center; animation:pop .5s var(--ease) forwards; }
+.a4tag{ position:absolute; right:8px; bottom:6px; font-size:10.5px; color:var(--txt-3);
+        background:rgba(255,255,255,.82); padding:2px 7px; border-radius:5px; z-index:3; }
+
+.bx{ fill:rgba(37,99,235,.07); stroke:var(--blue); stroke-width:1.1; opacity:0;
+     transform-box:fill-box; transform-origin:center; animation:pop .45s var(--ease) forwards; }
 .bx.low{ stroke:var(--amber); fill:rgba(194,116,10,.10); }
 .bx.bad{ stroke:var(--red); fill:rgba(220,38,38,.10); }
 @keyframes pop{ from{ opacity:0; transform:scale(.72); } to{ opacity:1; transform:scale(1); } }
-.colband{ fill:rgba(124,58,237,.07); stroke:var(--violet); stroke-width:1; stroke-dasharray:5 5; opacity:0; animation:fadein .7s var(--ease) .1s forwards; }
-.tbl-box{ fill:rgba(13,148,136,.09); stroke:var(--teal); stroke-width:2; opacity:0; animation:fadein .7s var(--ease) .35s forwards; }
+.colband{ fill:rgba(124,58,237,.06); stroke:var(--violet); stroke-width:1; stroke-dasharray:5 5;
+          opacity:0; animation:fadein .6s var(--ease) .1s forwards; }
+.tbl-box{ fill:rgba(13,148,136,.08); stroke:var(--teal); stroke-width:2; opacity:0;
+          animation:fadein .6s var(--ease) .3s forwards; }
 @keyframes fadein{ to{ opacity:1; } }
 
-.scanner{ position:absolute; left:0; right:0; height:120px; pointer-events:none; opacity:0;
-  background:linear-gradient(180deg,transparent,rgba(37,99,235,.14) 46%,rgba(37,99,235,.42) 50%,rgba(37,99,235,.14) 54%,transparent); }
-.stage.busy .scanner{ opacity:1; animation:sweep 1.25s var(--ease) infinite; }
-@keyframes sweep{ 0%{ top:-14%; } 100%{ top:100%; } }
+/* ---------- loader ---------- */
+.loader{ position:absolute; inset:0; z-index:9; display:flex; flex-direction:column;
+         align-items:center; justify-content:center; gap:14px;
+         background:rgba(238,241,246,.92); backdrop-filter:blur(2px); }
+.spin{ width:38px; height:38px; border-radius:50%; border:3px solid #C9D4E4;
+       border-top-color:var(--blue); animation:rot .8s linear infinite; }
+@keyframes rot{ to{ transform:rotate(360deg); } }
+.loader b{ font-size:14px; font-weight:600; }
+.loader span{ font-size:12.5px; color:var(--txt-2); }
+.lbar{ width:190px; height:4px; border-radius:4px; background:#D2DBE8; overflow:hidden; }
+.lbar i{ display:block; height:100%; width:40%; border-radius:4px;
+         background:linear-gradient(90deg,var(--blue),var(--violet)); animation:slide 1.1s var(--ease) infinite; }
+@keyframes slide{ 0%{ transform:translateX(-110%) } 100%{ transform:translateX(320%) } }
 
-.empty{ display:grid; place-content:center; text-align:center; color:var(--txt-3); height:100%; }
-.empty div{ font-size:44px; margin-bottom:10px; opacity:.4; }
+.empty{ display:flex; flex-direction:column; align-items:center; justify-content:center;
+        gap:8px; height:100%; color:var(--txt-3); text-align:center; padding:20px; }
+.empty i{ font-size:34px; font-style:normal; opacity:.35; }
 
-.stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(104px,1fr)); gap:1px; background:var(--line); border-bottom:1px solid var(--line); }
-.stat{ background:var(--paper); padding:14px 16px; }
-.stat b{ display:block; font-family:var(--fd); font-weight:800; font-size:24px; letter-spacing:-.035em; font-variant-numeric:tabular-nums; line-height:1.15; }
-.stat span{ font-size:12px; color:var(--txt-2); }
+/* ---------- pager ---------- */
+.pager{ flex:none; display:flex; align-items:center; justify-content:center; gap:8px;
+        padding:8px 12px; border-top:1px solid var(--line); background:var(--bg-2); font-size:13px; }
+.pager button{ width:30px; height:30px; border:1px solid var(--line-2); border-radius:8px;
+               background:var(--paper); line-height:1; transition:border-color .25s, color .25s; }
+.pager button:hover:not(:disabled){ border-color:var(--blue); color:var(--blue); }
+.pager button:disabled{ opacity:.3; cursor:default; }
+.pager input{ width:48px; padding:5px; text-align:center; border:1px solid var(--line-2);
+              border-radius:7px; font:inherit; font-size:13px; font-variant-numeric:tabular-nums; }
+.pager .of{ color:var(--txt-2); font-variant-numeric:tabular-nums; }
+.pager a{ margin-left:6px; font-size:12.5px; color:var(--teal); text-decoration:none; }
+.pager a:hover{ text-decoration:underline; }
+
+/* ---------- tabs ---------- */
+.tabs{ flex:none; display:flex; gap:2px; padding:0 10px; border-bottom:1px solid var(--line);
+       background:var(--bg-2); align-items:center; flex-wrap:wrap; min-height:42px; }
+.tabs button{ padding:11px 13px; font-size:13.5px; color:var(--txt-2);
+              border-bottom:2px solid transparent; transition:color .25s, border-color .25s; }
+.tabs button:hover{ color:var(--txt); }
+.tabs button.on{ color:var(--blue); border-bottom-color:var(--blue); font-weight:600; }
+.tabs .count{ display:inline-block; min-width:17px; margin-left:5px; padding:1px 6px; border-radius:100px;
+              background:var(--teal); color:#fff; font-size:11px; font-weight:600; }
+.zoom{ margin-left:auto; display:flex; align-items:center; gap:4px; padding-right:4px; }
+.zoom button{ width:26px; height:26px; border:1px solid var(--line-2); border-radius:7px;
+              background:var(--paper); font-size:14px; line-height:1; padding:0; }
+.zoom button:hover{ border-color:var(--blue); color:var(--blue); }
+.zoom .pct{ font-size:11.5px; color:var(--txt-3); min-width:40px; text-align:center;
+            font-variant-numeric:tabular-nums; }
+
+/* ---------- extracted text, fit to WIDTH so it stays readable ---------- */
+.doc{ padding:26px 28px; }
+.doc pre{ margin:0; font-family:var(--fm); font-size:13px; line-height:1.48; color:#1B2738;
+          white-space:pre; transform-origin:0 0; tab-size:4; }
+.doc pre.flat{ color:#5A6B82; }
+.doc pre .ln{ display:block; opacity:0; animation:slidein .3s var(--ease) forwards; }
+@keyframes slidein{ from{ opacity:0; transform:translateX(-6px); } to{ opacity:1; transform:none; } }
+pre.msg{ margin:0; padding:24px; font-family:var(--fm); font-size:12.5px; line-height:1.6;
+         color:var(--txt-2); white-space:pre-wrap; }
+
+/* ---------- tables: visible ruling, that was the missing bit ---------- */
+.tblwrap{ padding:22px 24px; }
+.tblwrap h4{ font-size:13.5px; margin:0 0 9px; display:flex; align-items:center; gap:9px; }
+.tblwrap h4 em{ font-family:var(--fb); font-style:normal; font-weight:400; font-size:12px; color:var(--txt-3); }
+table.x{ border-collapse:collapse; width:100%; font-size:13px; margin-bottom:26px;
+         border:1.5px solid #9FB0C6; }
+table.x th,table.x td{ padding:7px 11px; text-align:left; vertical-align:top;
+                       border:1px solid #BCC8D8; }          /* every cell ruled */
+table.x thead th{ background:#16324F; color:#fff; font-weight:600; font-size:12.5px;
+                  border-color:#16324F; position:sticky; top:0; z-index:2; }
+table.x tbody tr:nth-child(even){ background:#F4F7FB; }
+table.x tbody tr{ opacity:0; animation:rowin .35s var(--ease) forwards; }
+@keyframes rowin{ from{ opacity:0; transform:translateY(4px); } to{ opacity:1; transform:none; } }
+table.x td.num{ text-align:right; font-variant-numeric:tabular-nums; font-family:var(--fm); font-size:12.5px; }
+.exports{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+.exports a{ font-size:13px; padding:7px 14px; border-radius:100px; border:1px solid var(--line-2);
+            background:var(--paper); color:var(--txt); text-decoration:none; transition:border-color .25s, color .25s; }
+.exports a:hover{ border-color:var(--teal); color:var(--teal); }
+.none{ padding:40px 24px; text-align:center; color:var(--txt-3); }
+.fignote{ margin:0 0 18px; font-size:12.5px; color:var(--txt-2); line-height:1.6;
+          border-left:3px solid var(--violet); padding-left:12px; }
+.figrow{ display:grid; grid-template-columns:200px 1fr; gap:16px; align-items:start;
+         padding:14px 0; border-top:1px solid var(--line); }
+.figrow img{ width:100%; border:1px solid var(--line-2); border-radius:6px; background:#fff; }
+.figrow h4{ font-size:14px; display:flex; align-items:center; gap:9px; margin:0 0 4px; }
+.figrow h4 em{ font-family:var(--fb); font-style:normal; font-size:11px; font-weight:600;
+               text-transform:uppercase; letter-spacing:.06em; color:#fff; background:var(--teal);
+               padding:2px 8px; border-radius:100px; }
+.figmeta{ margin:0 0 7px; font-size:12px; color:var(--txt-3); font-variant-numeric:tabular-nums; }
+.figlabels{ margin:0 0 9px; display:flex; flex-wrap:wrap; gap:5px; }
+.figlabels span{ font-size:11.5px; background:var(--bg); border:1px solid var(--line);
+                 padding:2px 8px; border-radius:100px; color:var(--txt-2); }
+.figdl{ font-size:12.5px; color:var(--blue); text-decoration:none; }
+.figdl:hover{ text-decoration:underline; }
+
+/* ---------- stats strip ---------- */
+.stats{ flex:none; display:grid; grid-template-columns:repeat(6,1fr); gap:1px;
+        background:var(--line); border-bottom:1px solid var(--line); }
+.stat{ background:var(--paper); padding:8px 10px; text-align:center; }
+.stat b{ display:block; font-family:var(--fd); font-weight:800; font-size:17px; letter-spacing:-.03em;
+         font-variant-numeric:tabular-nums; line-height:1.2; }
+.stat span{ font-size:10.5px; color:var(--txt-3); }
 .stat:nth-child(1) b{ color:var(--blue); } .stat:nth-child(2) b{ color:var(--teal); }
 .stat:nth-child(3) b{ color:var(--violet); } .stat:nth-child(4) b{ color:var(--amber); }
 .stat:nth-child(5) b{ color:var(--pink); } .stat:nth-child(6) b{ color:var(--txt); }
-
-.verdict{ padding:14px 20px; font-size:14px; color:var(--txt-2); border-bottom:1px solid var(--line); background:#F6F3FF; }
+.verdict{ flex:none; padding:8px 14px; font-size:12.5px; color:var(--txt-2);
+          border-bottom:1px solid var(--line); background:#F6F3FF; }
 .verdict b{ color:var(--violet); }
-
-.tabs{ display:flex; gap:2px; padding:10px 14px 0; border-bottom:1px solid var(--line); background:var(--bg-2); flex-wrap:wrap; }
-.tabs button{ padding:10px 15px; font-size:14px; color:var(--txt-2); border-bottom:2px solid transparent; transition:color .3s, border-color .3s; }
-.tabs button:hover{ color:var(--txt); }
-.tabs button.on{ color:var(--blue); border-bottom-color:var(--blue); font-weight:600; }
-.tabs .count{ display:inline-block; min-width:18px; margin-left:6px; padding:1px 6px; border-radius:100px; background:var(--teal); color:#fff; font-size:11px; font-weight:600; }
-
-/* Text is laid onto the sheet at page margins, then scaled so the widest
-   line fits the paper exactly, the way a PDF renderer fits a page. */
-.doc{ position:absolute; inset:7.4% 6.4%; overflow:hidden; }
-.doc pre{ margin:0; font-family:var(--fm); font-size:11px; line-height:1.5; color:#223049;
-          white-space:pre; transform-origin:0 0; tab-size:4; }
-.doc pre.flat{ color:#64748B; }
-pre.msg{ margin:0; padding:22px; font-family:var(--fm); font-size:12.5px; line-height:1.55;
-         color:#55637A; white-space:pre-wrap; background:var(--paper); }
-.doc pre .ln{ display:block; opacity:0; animation:slidein .32s var(--ease) forwards; }
-@keyframes slidein{ from{ opacity:0; transform:translateX(-7px); } to{ opacity:1; transform:none; } }
-
-/* ---------- extracted tables ---------- */
-.tblwrap{ padding:30px 34px; width:100%; }
-.tblwrap h4{ font-family:var(--fd); font-size:14px; margin:0 0 10px; display:flex; align-items:center; gap:10px; }
-.tblwrap h4 span{ font-family:var(--fb); font-weight:400; font-size:12.5px; color:var(--txt-3); }
-.tblwrap + .tblwrap{ border-top:1px solid var(--line); }
-table.x{ border-collapse:separate; border-spacing:0; width:100%; font-size:13.5px; margin-bottom:22px;
-         border:1px solid var(--line); border-radius:10px; overflow:hidden; }
-table.x th,table.x td{ padding:9px 13px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top; }
-table.x thead th{ background:#16324F; color:#fff; font-weight:600; font-size:12.5px; position:sticky; top:0; }
-table.x tbody tr:nth-child(even){ background:var(--bg-2); }
-table.x tbody tr:last-child td{ border-bottom:0; }
-table.x tbody tr{ opacity:0; animation:rowin .4s var(--ease) forwards; }
-@keyframes rowin{ from{ opacity:0; transform:translateY(5px); } to{ opacity:1; transform:none; } }
-table.x td.num{ text-align:right; font-variant-numeric:tabular-nums; font-family:var(--fm); font-size:12.5px; }
-.exports{ display:flex; gap:9px; flex-wrap:wrap; margin-bottom:18px; }
-.exports a{ font-size:13.5px; padding:8px 15px; border-radius:100px; border:1px solid var(--line-2); background:var(--paper); color:var(--txt); text-decoration:none; transition:border-color .3s, transform .3s var(--ease); }
-.exports a:hover{ border-color:var(--teal); color:var(--teal); transform:translateY(-1px); }
-.none{ padding:40px 20px; text-align:center; color:var(--txt-3); background:var(--paper); }
-
-.legend{ display:flex; gap:16px; flex-wrap:wrap; padding:12px 20px; border-top:1px solid var(--line); font-size:12.5px; color:var(--txt-2); background:var(--bg-2); }
-.legend i{ display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
-
-footer{ position:relative; z-index:2; padding:0 34px 40px; color:var(--txt-3); font-size:13px; }
+.scroll{ flex:1; min-height:0; overflow:auto; background:var(--desk); }
+.scroll > .sheet{ margin:16px auto; max-width:760px; }
 
 @media (prefers-reduced-motion: reduce){
-  *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
-  .bx,.colband,.tbl-box,pre .ln,table.x tbody tr{ opacity:1 !important; }
+  *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important;
+                        transition-duration:.01ms !important; }
+  .bx,.colband,.tbl-box,.doc pre .ln,table.x tbody tr{ opacity:1 !important; }
+  .spin,.lbar i{ animation:none !important; }
 }
 </style>
 </head>
 <body>
-<div class="wash" aria-hidden="true"></div>
 
-<header>
-  <div class="title">
+<div class="bar">
+  <div class="brand">
     <span class="mark" aria-hidden="true"></span>
-    <div>
-      <h1>OCR layout studio</h1>
-      <p>Keep the geometry, or lose the meaning</p>
-    </div>
+    <span><b>OCR layout studio</b><span>Keep the geometry, or lose the meaning</span></span>
   </div>
-  <div class="tools">
-    <button class="btn" id="sampleBtn">Generate a hard page</button>
-    <button class="btn primary" id="pickBtn">Upload image or PDF</button>
-    <input type="file" id="file" accept="image/*,application/pdf,.pdf" hidden>
-  </div>
-</header>
-
-<div class="drop" id="drop">
-  <b>Drop a PDF or an image, or press Ctrl+V to paste one</b>
-  <span>Multi-page PDFs get a page selector. Win+Shift+S snips any region. Or press <em>Generate a hard page</em> for a two-column invoice that breaks reading-order OCR.</span>
+  <span class="hint" id="dropHint">Drop a file anywhere &middot; Ctrl+V to paste</span>
+  <button class="btn" id="sampleBtn">Sample page</button>
+  <button class="btn primary" id="pickBtn">Upload image or PDF</button>
+  <input type="file" id="file" accept="image/*,application/pdf,.pdf" hidden>
 </div>
 
 <main>
-  <section class="panel">
-    <h3>Page <span id="engineTag">no engine loaded</span></h3>
-    <div class="desk" id="stage">
-      <div class="sheet">
-        <div class="empty" id="stageEmpty"><div>&#9638;</div>Nothing loaded yet</div>
+  <!-- ===================== page ===================== -->
+  <section class="pane">
+    <div class="pane-head">
+      <span class="lbl">Page</span>
+      <span class="right" id="engineTag">no engine loaded</span>
+    </div>
+    <div class="desk" id="desk">
+      <div class="sheet page">
+        <div class="empty" id="stageEmpty"><i>&#9638;</i>Nothing loaded yet</div>
         <div class="pagebox" id="pagebox" hidden>
           <img id="page" alt="">
           <svg id="overlay"></svg>
         </div>
-        <span class="a4tag" id="a4tag"></span>
-        <div class="scanner" aria-hidden="true"></div>
+        <span class="a4tag" id="a4tag" hidden></span>
+      </div>
+      <div class="loader" id="loader" hidden>
+        <div class="spin"></div>
+        <b id="loadTitle">Reading the page</b>
+        <span id="loadStep">detecting text regions&hellip;</span>
+        <span class="lbar"><i></i></span>
       </div>
     </div>
     <div class="pager" id="pager" hidden>
@@ -193,24 +246,18 @@ footer{ position:relative; z-index:2; padding:0 34px 40px; color:var(--txt-3); f
       <span class="of" id="pOf"></span>
       <button id="pNext" title="Next page">&#8250;</button>
       <button id="pLast" title="Last page">&#8677;</button>
-      <a id="pZip" href="#">Download all pages as PNG</a>
-    </div>
-    <div class="legend">
-      <span><i style="background:var(--blue)"></i>confident</span>
-      <span><i style="background:var(--amber)"></i>below 0.80</span>
-      <span><i style="background:var(--red)"></i>below 0.60</span>
-      <span><i style="background:var(--violet)"></i>column band</span>
-      <span><i style="background:var(--teal)"></i>table</span>
+      <a id="pZip" href="#" hidden>All pages as PNG</a>
     </div>
   </section>
 
-  <section class="panel">
+  <!-- ===================== extraction ===================== -->
+  <section class="pane">
     <div class="stats" id="stats">
       <div class="stat"><b>&mdash;</b><span>boxes</span></div>
       <div class="stat"><b>&mdash;</b><span>lines</span></div>
       <div class="stat"><b>&mdash;</b><span>columns</span></div>
       <div class="stat"><b>&mdash;</b><span>tables</span></div>
-      <div class="stat"><b>&mdash;</b><span>mean conf</span></div>
+      <div class="stat"><b>&mdash;</b><span>conf</span></div>
       <div class="stat"><b>&mdash;</b><span>ms</span></div>
     </div>
     <div class="verdict" id="verdict">Load a page to compare the two reconstructions.</div>
@@ -218,221 +265,244 @@ footer{ position:relative; z-index:2; padding:0 34px 40px; color:var(--txt-3); f
       <button class="on" data-tab="preserved">Layout preserved</button>
       <button data-tab="flattened">Flattened</button>
       <button data-tab="tables">Tables<span class="count" id="tblCount" hidden>0</span></button>
+      <button data-tab="figures">Figures<span class="count" id="figCount" hidden>0</span></button>
+      <span class="zoom" id="zoomBox" hidden>
+        <button id="zOut" title="Zoom out">&minus;</button>
+        <span class="pct" id="zPct">100%</span>
+        <button id="zIn" title="Zoom in">+</button>
+        <button id="zFit" title="Fit width" style="width:auto;padding:0 8px;font-size:11.5px">Fit</button>
+      </span>
     </div>
-    <div id="out"><pre class="msg">Drop a scanned invoice, a lab report or a bank statement in.
+    <div class="scroll" id="out"><pre class="msg">Drop a scanned invoice, a lab report, a bank statement or a PDF.
 
 The left pane shows what the detector found. This pane shows three
 readings of the same boxes:
 
-  Layout preserved   boxes quantised onto a character grid derived
-                     from the page's own median glyph advance, so
-                     columns stay columns
+  Layout preserved   boxes quantised onto a character grid taken from
+                     the page's own glyph advance, so columns stay put
 
-  Flattened          the same boxes joined in reading order, which
-                     is what a default OCR call gives you
+  Flattened          the same boxes joined in reading order, which is
+                     what a default OCR call gives you
 
   Tables             runs of lines whose cells land on the same
-                     vertical anchors, pulled out as real grids
-                     and exported to CSV or Excel
+                     vertical anchors, pulled out as real grids and
+                     exported to CSV or Excel
 
-On a single-column page the first two agree. On anything with two
-columns they do not, and the flattened one is quietly wrong.</pre></div>
+Multi-page PDFs get a page selector. Arrow keys move between pages.</pre></div>
   </section>
 </main>
-
-<footer>Runs locally. PaddleOCR when installed, Tesseract otherwise. Nothing is uploaded anywhere.</footer>
 
 <script>
 const $ = s => document.querySelector(s);
 const els = {
-  file:$("#file"), pick:$("#pickBtn"), sample:$("#sampleBtn"), drop:$("#drop"),
-  stage:$("#stage"), page:$("#page"), svg:$("#overlay"), empty:$("#stageEmpty"),
-  pagebox:$("#pagebox"), a4tag:$("#a4tag"), pager:$("#pager"), pNum:$("#pNum"),
-  pOf:$("#pOf"), pPrev:$("#pPrev"), pNext:$("#pNext"), pFirst:$("#pFirst"),
-  pLast:$("#pLast"), pZip:$("#pZip"),
-  stats:$("#stats"), out:$("#out"), verdict:$("#verdict"),
-  tabs:document.querySelectorAll("#tabs button[data-tab]"),
-  engine:$("#engineTag"), tblCount:$("#tblCount"),
+  file:$("#file"), pick:$("#pickBtn"), sample:$("#sampleBtn"),
+  desk:$("#desk"), page:$("#page"), svg:$("#overlay"), empty:$("#stageEmpty"),
+  pagebox:$("#pagebox"), a4tag:$("#a4tag"), loader:$("#loader"),
+  loadTitle:$("#loadTitle"), loadStep:$("#loadStep"),
+  stats:$("#stats"), out:$("#out"), verdict:$("#verdict"), engine:$("#engineTag"),
+  tabs:document.querySelectorAll("#tabs button[data-tab]"), tblCount:$("#tblCount"),
+  figCount:$("#figCount"),
+  pager:$("#pager"), pNum:$("#pNum"), pOf:$("#pOf"), pPrev:$("#pPrev"), pNext:$("#pNext"),
+  pFirst:$("#pFirst"), pLast:$("#pLast"), pZip:$("#pZip"),
+  zoomBox:$("#zoomBox"), zIn:$("#zIn"), zOut:$("#zOut"), zFit:$("#zFit"), zPct:$("#zPct"),
 };
-let data = null, tab = "preserved";
+let data = null, tab = "preserved", zoom = null;   // null = fit width
 
 const NS = "http://www.w3.org/2000/svg";
-const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+const el = (n,a) => { const e = document.createElementNS(NS,n); for (const k in a) e.setAttribute(k,a[k]); return e; };
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const isNum = s => /^[\s$£€₹]*[-+]?[\d,]+(?:\.\d+)?\s*%?$/.test(s || "");
 
+/* ---------------- loader ---------------- */
+let stepTimer = null;
+const STEPS = ["detecting text regions…","recognising glyphs…","clustering lines…",
+               "measuring the character grid…","finding columns and tables…"];
+function busy(on, title) {
+  els.loader.hidden = !on;
+  clearInterval(stepTimer);
+  if (!on) return;
+  els.loadTitle.textContent = title || "Reading the page";
+  let i = 0;
+  els.loadStep.textContent = STEPS[0];
+  stepTimer = setInterval(() => { i = (i + 1) % STEPS.length; els.loadStep.textContent = STEPS[i]; }, 1100);
+}
+
 function countUp(node, target, suffix = "") {
   if (typeof target !== "number") { node.textContent = target; return; }
-  const dur = 600, t0 = performance.now();
+  const dur = 500, t0 = performance.now();
   (function step(t) {
-    const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-    node.textContent = (target % 1 ? (target * e).toFixed(2) : Math.round(target * e)) + suffix;
+    const k = Math.min(1,(t - t0)/dur), e = 1 - Math.pow(1-k,3);
+    node.textContent = (target % 1 ? (target*e).toFixed(2) : Math.round(target*e)) + suffix;
     if (k < 1) requestAnimationFrame(step);
   })(t0);
 }
 
+/* ---------------- page overlay ---------------- */
 function drawBoxes(d) {
   const svg = els.svg;
   svg.innerHTML = "";
   svg.setAttribute("viewBox", `0 0 ${d.width} ${d.height}`);
-  svg.setAttribute("preserveAspectRatio", "none");
-  svg.hidden = false;
+  svg.setAttribute("preserveAspectRatio","none");
 
-  (d.analysis.column_bands || []).forEach(([x0, x1]) => {
-    svg.appendChild(el("rect", { class:"colband", x:x0, y:0, width:Math.max(x1-x0,1), height:d.height, rx:4 }));
-  });
+  (d.analysis.column_bands || []).forEach(([x0,x1]) =>
+    svg.appendChild(el("rect",{ class:"colband", x:x0, y:0, width:Math.max(x1-x0,1), height:d.height, rx:4 })));
 
   (d.tables || []).forEach(t => {
     const [x0,y0,x1,y1] = t.bbox;
-    svg.appendChild(el("rect", { class:"tbl-box", x:x0-6, y:y0-6, width:(x1-x0)+12, height:(y1-y0)+12, rx:6 }));
+    svg.appendChild(el("rect",{ class:"tbl-box", x:x0-6, y:y0-6, width:(x1-x0)+12, height:(y1-y0)+12, rx:6 }));
   });
 
-  const sorted = [...d.boxes].sort((a,b) => (a.y0 - b.y0) || (a.x0 - b.x0));
-  const step = Math.max(2, Math.min(9, 1400 / Math.max(sorted.length, 1)));
-  sorted.forEach((b, i) => {
-    const cls = b.conf < 0.60 ? "bx bad" : b.conf < 0.80 ? "bx low" : "bx";
-    const r = el("rect", { class:cls, x:b.x0, y:b.y0, width:Math.max(b.x1-b.x0,1), height:Math.max(b.y1-b.y0,1), rx:2,
-                           style:`animation-delay:${(i*step).toFixed(0)}ms` });
-    r.appendChild(el("title", {})).textContent = `${b.text}  ·  ${(b.conf*100).toFixed(1)}%`;
+  const sorted = [...d.boxes].sort((a,b) => (a.y0-b.y0) || (a.x0-b.x0));
+  const step = Math.max(1, Math.min(7, 1200/Math.max(sorted.length,1)));
+  sorted.forEach((b,i) => {
+    const cls = b.conf < .60 ? "bx bad" : b.conf < .80 ? "bx low" : "bx";
+    const r = el("rect",{ class:cls, x:b.x0, y:b.y0, width:Math.max(b.x1-b.x0,1),
+                          height:Math.max(b.y1-b.y0,1), rx:2,
+                          style:`animation-delay:${(i*step).toFixed(0)}ms` });
+    r.appendChild(el("title",{})).textContent = `${b.text}  ·  ${(b.conf*100).toFixed(1)}%`;
     svg.appendChild(r);
   });
 }
 
-function renderTables() {
-  const ts = data.tables || [];
-  if (!ts.length) {
-    els.out.innerHTML = `<div class="desk"><div class="sheet grow"><div class="none">No tabular regions on this page.<br>
-      A table needs at least three consecutive lines whose cells land on the same
-      vertical anchors, plus either short cells or a numeric column &mdash; otherwise
-      two columns of prose would count as a table.</div></div></div>`;
-    return;
-  }
-  els.out.innerHTML = `<div class="desk"><div class="sheet grow"><div class="tblwrap">
-    <div class="exports">
-      <a href="/api/tables/${data.token}.xlsx">Download .xlsx</a>
-      <a href="/api/tables/${data.token}.csv">Download .csv</a>
-    </div>
-    ${ts.map((t, n) => {
-      const [head, ...body] = t.rows;
-      return `<h4>Table ${n+1}<span>${t.rows.length} rows &times; ${t.cols} columns</span></h4>
-      <table class="x">
-        <thead><tr>${head.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead>
-        <tbody>${body.map((r, i) =>
-          `<tr style="animation-delay:${i*34}ms">${r.map(c =>
-            `<td class="${isNum(c) ? "num" : ""}">${esc(c)}</td>`).join("")}</tr>`).join("")}
-        </tbody>
-      </table>`;
-    }).join("")}
-  </div></div></div>`;
-}
-
-function renderText() {
-  const text = tab === "flattened" ? data.flattened : data.preserved;
-  const lines = (text || "(nothing)").split("\n");
-  els.out.innerHTML = `<div class="desk"><div class="sheet"><div class="doc">
-    <pre class="${tab === "flattened" ? "flat" : ""}">${
-      lines.map((l, i) => `<span class="ln" style="animation-delay:${Math.min(i*11, 900)}ms">${esc(l) || "&nbsp;"}</span>`).join("")
-    }</pre></div><span class="a4tag">A4 &middot; ${lines.length} lines</span></div></div>`;
-  fitToPage(els.out.querySelector(".doc"));
-}
-
-/* Scale the text block so the widest line lands exactly on the page margin
-   and the column fits the sheet height. Same job a PDF viewer does when it
-   fits a page to the window. */
-function fitToPage(doc) {
+/* ---------------- extraction ---------------- */
+function applyZoom() {
+  const doc = els.out.querySelector(".doc");
   if (!doc) return;
   const pre = doc.querySelector("pre");
   if (!pre) return;
   pre.style.transform = "none";
   requestAnimationFrame(() => {
-    const availW = doc.clientWidth, availH = doc.clientHeight;
-    const needW = pre.scrollWidth, needH = pre.scrollHeight;
-    if (!needW || !needH) return;
-    const k = Math.min(availW / needW, availH / needH, 1.6);
+    const avail = doc.clientWidth - 2;
+    const need = pre.scrollWidth;
+    // Fit to WIDTH only. Fitting height too is what made this unreadable:
+    // a 60-line page would shrink to nothing. Let it scroll vertically.
+    const k = zoom !== null ? zoom : (need ? Math.min(avail/need, 1.4) : 1);
     pre.style.transform = `scale(${k.toFixed(4)})`;
+    pre.style.marginBottom = `${(pre.scrollHeight * (k-1)).toFixed(0)}px`;
+    els.zPct.textContent = Math.round(k*100) + "%";
   });
 }
 
-function renderPane() {
+function renderText() {
+  const text = tab === "flattened" ? data.flattened : data.preserved;
+  const lines = (text || "(nothing)").split("\n");
+  els.out.innerHTML = `<div class="sheet"><div class="doc"><pre class="${tab==="flattened"?"flat":""}">${
+    lines.map((l,i) => `<span class="ln" style="animation-delay:${Math.min(i*9,700)}ms">${esc(l)||"&nbsp;"}</span>`).join("")
+  }</pre></div></div>`;
+  els.zoomBox.hidden = false;
+  applyZoom();
+}
+
+function renderTables() {
+  const ts = data.tables || [];
+  els.zoomBox.hidden = true;
+  if (!ts.length) {
+    els.out.innerHTML = `<div class="sheet"><div class="none">No tabular regions on this page.<br><br>
+      A table needs three or more consecutive lines whose cells land on the same
+      vertical anchors, plus either a numeric column or short cells &mdash; otherwise
+      two columns of prose would count as a table.</div></div>`;
+    return;
+  }
+  els.out.innerHTML = `<div class="sheet"><div class="tblwrap">
+    <div class="exports">
+      <a href="/api/tables/${data.token}.xlsx">Download .xlsx</a>
+      <a href="/api/tables/${data.token}.csv">Download .csv</a>
+      <a href="/api/export/${data.token}">Download .txt</a>
+    </div>
+    ${ts.map((t,n) => {
+      const [head,...body] = t.rows;
+      return `<h4>Table ${n+1}<em>${t.rows.length} rows &times; ${t.cols} columns</em></h4>
+      <table class="x">
+        <thead><tr>${head.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead>
+        <tbody>${body.map((r,i) =>
+          `<tr style="animation-delay:${i*30}ms">${r.map(c =>
+            `<td class="${isNum(c)?"num":""}">${esc(c)}</td>`).join("")}</tr>`).join("")}
+        </tbody></table>`;
+    }).join("")}
+  </div></div>`;
+}
+
+function renderFigures() {
+  const fs = data.figures || [];
+  els.zoomBox.hidden = true;
+  if (!fs.length) {
+    els.out.innerHTML = `<div class="sheet"><div class="none">No figures on this page.<br><br>
+      Figures are found by subtraction: threshold the page to ink, paint out every
+      box the recogniser already read, and whatever survives is not text.</div></div>`;
+    return;
+  }
+  els.out.innerHTML = `<div class="sheet"><div class="tblwrap">
+    <p class="fignote">Charts, logos, stamps and signatures, found by subtracting the
+    recognised text from the page ink. Labels are the text sitting in and around each
+    figure &mdash; a chart's title and axes. Reading the plotted <em>values</em> off a chart is a
+    different problem and needs a chart-specific model; this does not attempt it.</p>
+    ${fs.map((f,n) => {
+      const [x,y,w,h] = f.bbox;
+      return `<div class="figrow">
+        <img src="/api/figure/${data.token}/${n}.png" alt="figure ${n+1}" loading="lazy">
+        <div>
+          <h4>Figure ${n+1}<em>${f.kind}</em></h4>
+          <p class="figmeta">${w}&times;${h}px at (${x}, ${y}) &middot; ${f.area_pct}% of the page &middot; ink ${f.ink}</p>
+          ${f.labels.length ? `<p class="figlabels">${f.labels.map(t=>`<span>${esc(t)}</span>`).join("")}</p>` : `<p class="figmeta">no text inside</p>`}
+          <a class="figdl" href="/api/figure/${data.token}/${n}.png" download>Download PNG</a>
+        </div>
+      </div>`;
+    }).join("")}
+  </div></div>`;
+}
+
+function renderPane(){
   if (!data) return;
-  if (tab === "tables") renderTables(); else renderText();
+  if (tab === "tables") renderTables();
+  else if (tab === "figures") renderFigures();
+  else renderText();
 }
 
 function render(d) {
   data = d;
   els.empty.hidden = true;
   els.pagebox.hidden = false;
-  // Give the box the document's own ratio so it letterboxes inside the A4
-  // sheet and the SVG overlay stays pixel-aligned with the image.
+  els.a4tag.hidden = false;
   els.pagebox.style.aspectRatio = `${d.width} / ${d.height}`;
-  const ratio = (d.height / d.width).toFixed(3);
-  els.a4tag.textContent = `${d.width}×${d.height}  ·  ratio ${ratio}` +
-    (Math.abs(d.height / d.width - 1.4142) < 0.04 ? "  ·  A4" : "");
+  const ratio = d.height / d.width;
+  els.a4tag.textContent = `${d.width}×${d.height} · ${ratio.toFixed(3)}` +
+                          (Math.abs(ratio - 1.4142) < 0.02 ? " · A4" : "");
   els.page.src = d.url;
   els.engine.textContent = `${d.engine} · ${d.ms} ms`;
 
-  const a = d.analysis;
-  const cells = els.stats.querySelectorAll(".stat b");
-  countUp(cells[0], a.boxes); countUp(cells[1], a.lines); countUp(cells[2], a.columns);
-  countUp(cells[3], a.tables || 0); countUp(cells[4], a.mean_conf); countUp(cells[5], d.ms);
-
+  const a = d.analysis, c = els.stats.querySelectorAll(".stat b");
+  countUp(c[0],a.boxes); countUp(c[1],a.lines); countUp(c[2],a.columns);
+  countUp(c[3],a.tables||0); countUp(c[4],a.mean_conf); countUp(c[5],d.ms);
   els.tblCount.textContent = a.tables || 0;
   els.tblCount.hidden = !a.tables;
+  els.figCount.textContent = a.figures || 0;
+  els.figCount.hidden = !a.figures;
 
   els.verdict.innerHTML = `<b>${a.columns} column${a.columns===1?"":"s"}</b> · ${a.words} words · ` +
-    `${a.tables||0} table${(a.tables||0)===1?"":"s"} (${a.table_rows||0} rows) · ` +
-    `${a.low_conf} low-confidence · advance ${a.char_width}px<br>${d.verdict}`;
+    `${a.tables||0} table${(a.tables||0)===1?"":"s"} · ${a.low_conf} low-conf · ` +
+    `advance ${a.char_width}px<br>${d.verdict}`;
 
-  // Multi-page PDFs get a pager; a single page or an image does not.
-  const multi = (d.pages || 1) > 1;
+  // Pager only for PDFs. d.doc is null for a plain image.
   els.pager.hidden = !d.doc;
   if (d.doc) {
     els.pNum.value = d.page + 1;
     els.pNum.max = d.pages;
-    els.pOf.textContent = `of ${d.pages} page${d.pages === 1 ? "" : "s"}`;
+    els.pOf.textContent = `of ${d.pages}`;
     els.pPrev.disabled = els.pFirst.disabled = d.page === 0;
     els.pNext.disabled = els.pLast.disabled = d.page >= d.pages - 1;
     els.pZip.href = `/api/pages/${d.doc}.zip`;
-    els.pZip.hidden = !multi;
+    els.pZip.hidden = d.pages < 2;
   }
 
   els.page.onload = () => drawBoxes(d);
-  if (els.page.complete) drawBoxes(d);
+  if (els.page.complete && els.page.naturalWidth) drawBoxes(d);
   renderPane();
 }
 
-async function gotoPage(n) {
-  if (!data || !data.doc) return;
-  n = Math.max(0, Math.min(n, data.pages - 1));
-  if (n === data.page) return;
-  els.stage.classList.add("busy");
-  try {
-    const r = await fetch(`/api/page/${data.doc}/${n}`);
-    if (!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || r.statusText);
-    render(await r.json());
-  } catch (err) {
-    els.out.innerHTML = `<pre class="msg">Failed: ${esc(err.message)}</pre>`;
-  } finally {
-    els.stage.classList.remove("busy");
-  }
-}
-
-els.pPrev.onclick  = () => gotoPage(data.page - 1);
-els.pNext.onclick  = () => gotoPage(data.page + 1);
-els.pFirst.onclick = () => gotoPage(0);
-els.pLast.onclick  = () => gotoPage(data.pages - 1);
-els.pNum.onchange  = () => gotoPage((parseInt(els.pNum.value, 10) || 1) - 1);
-addEventListener("keydown", e => {
-  if (!data || !data.doc) return;
-  if (e.target.tagName === "INPUT") return;
-  if (e.key === "ArrowLeft")  gotoPage(data.page - 1);
-  if (e.key === "ArrowRight") gotoPage(data.page + 1);
-});
-
+/* ---------------- transport ---------------- */
 async function send(blob, name) {
-  els.stage.classList.add("busy");
+  busy(true, name.toLowerCase().endsWith(".pdf") ? "Rasterising the PDF" : "Reading the page");
   els.pick.disabled = els.sample.disabled = true;
-  els.out.innerHTML = `<pre class="msg">Running detection and recognition…</pre>`;
   try {
     const fd = new FormData();
     fd.append("file", blob, name);
@@ -442,31 +512,51 @@ async function send(blob, name) {
   } catch (err) {
     els.out.innerHTML = `<pre class="msg">Failed: ${esc(err.message)}</pre>`;
   } finally {
-    els.stage.classList.remove("busy");
+    busy(false);
     els.pick.disabled = els.sample.disabled = false;
   }
 }
 
+async function gotoPage(n) {
+  if (!data || !data.doc) return;
+  n = Math.max(0, Math.min(n, data.pages - 1));
+  if (n === data.page) { els.pNum.value = data.page + 1; return; }
+  busy(true, `Page ${n + 1} of ${data.pages}`);
+  try {
+    const r = await fetch(`/api/page/${data.doc}/${n}`);
+    if (!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || r.statusText);
+    render(await r.json());
+  } catch (err) {
+    els.out.innerHTML = `<pre class="msg">Failed: ${esc(err.message)}</pre>`;
+  } finally { busy(false); }
+}
+
+/* ---------------- wiring ---------------- */
 els.pick.onclick = () => els.file.click();
 els.file.onchange = () => els.file.files[0] && send(els.file.files[0], els.file.files[0].name);
 
 els.sample.onclick = async () => {
   els.sample.disabled = true;
+  busy(true, "Building a hard page");
   try {
     const { url, name } = await (await fetch("/api/sample")).json();
     await send(await (await fetch(url)).blob(), name);
   } catch (err) {
     els.out.innerHTML = `<pre class="msg">Could not build a sample: ${esc(err.message)}</pre>`;
-  } finally {
-    els.sample.disabled = false;
-  }
+    busy(false);
+  } finally { els.sample.disabled = false; }
 };
 
-["dragenter","dragover"].forEach(e => els.drop.addEventListener(e, ev => { ev.preventDefault(); els.drop.classList.add("over"); }));
-["dragleave","drop"].forEach(e => els.drop.addEventListener(e, ev => { ev.preventDefault(); els.drop.classList.remove("over"); }));
-els.drop.addEventListener("drop", ev => { const f = ev.dataTransfer.files[0]; if (f) send(f, f.name); });
+// Drop anywhere on the window, not just a small zone.
+["dragenter","dragover"].forEach(e => addEventListener(e, ev => {
+  ev.preventDefault(); els.dropActive = true; document.body.style.outline = "2px dashed #2563EB";
+  document.body.style.outlineOffset = "-6px";
+}));
+["dragleave","drop"].forEach(e => addEventListener(e, ev => {
+  ev.preventDefault(); document.body.style.outline = "none";
+}));
+addEventListener("drop", ev => { const f = ev.dataTransfer?.files?.[0]; if (f) send(f, f.name); });
 
-// Paste an image straight from the clipboard. Snip with Win+Shift+S, Ctrl+V.
 addEventListener("paste", ev => {
   const item = [...(ev.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
   if (!item) return;
@@ -475,13 +565,30 @@ addEventListener("paste", ev => {
   if (blob) send(blob, "pasted." + (blob.type.split("/")[1] || "png"));
 });
 
-addEventListener("resize", () => fitToPage(els.out.querySelector(".doc")));
-
 els.tabs.forEach(b => b.onclick = () => {
   tab = b.dataset.tab;
   els.tabs.forEach(x => x.classList.toggle("on", x === b));
   renderPane();
 });
+
+els.zIn.onclick  = () => { zoom = Math.min((zoom || 1) * 1.2, 4); applyZoom(); };
+els.zOut.onclick = () => { zoom = Math.max((zoom || 1) / 1.2, .25); applyZoom(); };
+els.zFit.onclick = () => { zoom = null; applyZoom(); };
+
+els.pPrev.onclick  = () => gotoPage(data.page - 1);
+els.pNext.onclick  = () => gotoPage(data.page + 1);
+els.pFirst.onclick = () => gotoPage(0);
+els.pLast.onclick  = () => gotoPage(data.pages - 1);
+els.pNum.onchange  = () => gotoPage((parseInt(els.pNum.value,10) || 1) - 1);
+
+addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") return;
+  if (!data || !data.doc) return;
+  if (e.key === "ArrowLeft")  { e.preventDefault(); gotoPage(data.page - 1); }
+  if (e.key === "ArrowRight") { e.preventDefault(); gotoPage(data.page + 1); }
+});
+
+addEventListener("resize", () => { if (zoom === null) applyZoom(); });
 </script>
 </body>
 </html>

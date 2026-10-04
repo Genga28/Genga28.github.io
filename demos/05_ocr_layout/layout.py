@@ -409,6 +409,90 @@ def detect_tables(boxes: list[Box], min_rows: int = 3, min_cols: int = 2) -> lis
     return tables
 
 
+# ==========================================================================
+# figures: charts, logos, stamps, signatures
+# ==========================================================================
+def detect_figures(image_path: str, boxes: list[Box], min_area_frac: float = 0.003) -> list[dict]:
+    """Find the non-text graphics on the page.
+
+    The trick is subtractive rather than clever: threshold the page to an ink
+    mask, paint out every box the OCR engine already claimed, and whatever
+    ink survives is by definition not text. Close it up, take connected
+    components, and the leftovers are charts, logos, stamps and signatures.
+
+    Each figure reports the OCR text that falls inside it, which for a chart
+    is its title, axis labels and legend. That is the metadata, not the
+    series data: see the note in the README about why reading values off a
+    plot is a different problem.
+    """
+    try:
+        import cv2
+    except ImportError:
+        return []
+
+    img = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        return []
+    H, W = img.shape
+
+    ink = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+                                cv2.THRESH_BINARY_INV, 41, 18)
+
+    # Erase everything the recogniser already read, with a small cushion so
+    # antialiased glyph edges do not survive as speckle.
+    pad = max(2, int(char_width(boxes) * 0.4)) if boxes else 2
+    for b in boxes:
+        cv2.rectangle(ink, (int(b.x0) - pad, int(b.y0) - pad),
+                      (int(b.x1) + pad, int(b.y1) + pad), 0, -1)
+
+    k = cv2.getStructuringElement(cv2.MORPH_RECT, (17, 17))
+    closed = cv2.morphologyEx(ink, cv2.MORPH_CLOSE, k, iterations=2)
+
+    count, _, stats, _ = cv2.connectedComponentsWithStats(closed, 8)
+    min_box = W * H * min_area_frac
+
+    figures = []
+    for i in range(1, count):
+        x, y, w, h, ink_px = stats[i]
+
+        # Gate on the bounding box, not the ink count. A line chart is mostly
+        # whitespace by design: a 470x300 plot can carry under 8k ink pixels
+        # and would be thrown away by an ink threshold that a solid logo of a
+        # tenth the size sails through.
+        if w * h < min_box or w < W * 0.04 or h < H * 0.015 or h < 20:
+            continue
+        if ink_px < 400:                     # speckle and scanner dust
+            continue
+        if w > W * 0.97 and h < 40:          # a full-width rule, not a figure
+            continue
+
+        # Axis labels and captions sit just outside the plotted area, so look
+        # a little wider than the box when deciding whether this is a chart.
+        mx, my = w * 0.10 + 12, h * 0.10 + 12
+        near = [b for b in boxes
+                if x - mx <= b.cx <= x + w + mx and y - my <= b.cy <= y + h + my]
+        density = ink_px / float(w * h)
+
+        if len(near) >= 3 and density < 0.45:
+            kind = "chart"                   # sparse ink, surrounded by labels
+        elif density > 0.55:
+            kind = "image"                   # solid block: photo, logo, stamp
+        else:
+            kind = "graphic"                 # a rule, a scrawl, a signature
+        inside = near
+
+        figures.append({
+            "bbox": [int(x), int(y), int(w), int(h)],
+            "kind": kind,
+            "area_pct": round(100 * (w * h) / (W * H), 2),
+            "ink": round(density, 3),
+            "labels": [b.text for b in sorted(inside, key=lambda b: (b.y0, b.x0))][:24],
+        })
+
+    figures.sort(key=lambda f: (f["bbox"][1], f["bbox"][0]))
+    return figures
+
+
 def analyse(boxes: list[Box]) -> dict:
     confs = [b.conf for b in boxes] or [0.0]
     lines = cluster_lines(boxes)
