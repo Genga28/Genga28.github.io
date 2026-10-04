@@ -135,9 +135,9 @@ main{ flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:12p
             font-variant-numeric:tabular-nums; }
 
 /* ---------- extracted text, fit to WIDTH so it stays readable ---------- */
-.doc{ padding:26px 28px; }
-.doc pre{ margin:0; font-family:var(--fm); font-size:13px; line-height:1.48; color:#1B2738;
-          white-space:pre; transform-origin:0 0; tab-size:4; }
+.doc{ padding:24px 26px; }
+.doc pre{ margin:0; font-family:var(--fm); font-size:14px; line-height:1.5; color:#16222F;
+          white-space:pre; tab-size:4; width:max-content; }
 .doc pre.flat{ color:#5A6B82; }
 .doc pre .ln{ display:block; opacity:0; animation:slidein .3s var(--ease) forwards; }
 @keyframes slidein{ from{ opacity:0; transform:translateX(-6px); } to{ opacity:1; transform:none; } }
@@ -193,6 +193,7 @@ table.x td.num{ text-align:right; font-variant-numeric:tabular-nums; font-family
           border-bottom:1px solid var(--line); background:#F6F3FF; }
 .verdict b{ color:var(--violet); }
 .scroll{ flex:1; min-height:0; overflow:auto; background:var(--desk); }
+.scroll > .sheet{ width:auto; min-width:min(100%,760px); }
 .scroll > .sheet{ margin:16px auto; max-width:760px; }
 
 @media (prefers-reduced-motion: reduce){
@@ -365,21 +366,28 @@ function drawBoxes(d) {
 }
 
 /* ---------------- extraction ---------------- */
+const MIN_FIT = 0.62;   // below this the type stops being readable; scroll instead
+
 function applyZoom() {
   const doc = els.out.querySelector(".doc");
   if (!doc) return;
   const pre = doc.querySelector("pre");
   if (!pre) return;
-  pre.style.transform = "none";
+
+  // `zoom` rather than `transform: scale()`. transform does not change layout,
+  // so the parent kept reserving the unscaled width and the pane grew a
+  // horizontal scrollbar even at "fit". zoom reflows, so fit really fits.
+  pre.style.zoom = 1;
   requestAnimationFrame(() => {
-    const avail = doc.clientWidth - 2;
+    const avail = doc.clientWidth;
     const need = pre.scrollWidth;
-    // Fit to WIDTH only. Fitting height too is what made this unreadable:
-    // a 60-line page would shrink to nothing. Let it scroll vertically.
-    const k = zoom !== null ? zoom : (need ? Math.min(avail/need, 1.4) : 1);
-    pre.style.transform = `scale(${k.toFixed(4)})`;
-    pre.style.marginBottom = `${(pre.scrollHeight * (k-1)).toFixed(0)}px`;
-    els.zPct.textContent = Math.round(k*100) + "%";
+    let k = zoom;
+    if (k === null) {
+      k = need ? avail / need : 1;
+      k = Math.max(MIN_FIT, Math.min(k, 1.5));   // readable floor and ceiling
+    }
+    pre.style.zoom = k.toFixed(4);
+    els.zPct.textContent = Math.round(k * 100) + "%";
   });
 }
 

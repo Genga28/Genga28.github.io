@@ -223,12 +223,30 @@ def preserve(boxes: list[Box], max_cols: int = 220) -> str:
                 out.append("")
 
         row = ""
+        prev: Box | None = None
+
         for box in line:
-            col = int(round((box.x0 - left) / cw))
+            # Each box's own advance. A 28px heading and 11px body text do not
+            # share a character width, and dividing a heading's pixel gaps by
+            # the page-wide body advance is what blows "Annual Report & Accounts"
+            # apart into "Annual      Report      &      Accounts".
+            local = box.w / max(len(box.text), 1)
+
+            if prev is not None:
+                gap = box.x0 - prev.x1
+                if gap < local * 1.8:
+                    # Words inside one phrase: space them in their own type
+                    # size, not on the page grid.
+                    row += " " * max(1, int(round(gap / local))) + box.text
+                    prev = box
+                    continue
+
+            # A real gutter, so fall back to the page grid and keep the column.
+            col = min(int(round((box.x0 - left) / cw)), max_cols)
             col = max(col, len(row) + (1 if row else 0))
-            if col > max_cols:
-                col = min(col, max_cols)
             row = row.ljust(col) + box.text
+            prev = box
+
         out.append(row.rstrip())
         prev_bottom = max(b.y1 for b in line)
 
