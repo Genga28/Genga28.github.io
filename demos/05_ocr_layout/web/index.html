@@ -53,7 +53,7 @@ button{ font:inherit; color:inherit; background:none; border:0; cursor:pointer; 
 
 /* ---------- 50 / 50 ---------- */
 main{ flex:1; min-height:0; display:grid;
-      grid-template-columns:minmax(0,0.78fr) minmax(0,1.22fr); gap:12px; padding:12px; }
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; padding:12px; }
 @media (max-width:1060px){ body{ overflow:auto; } main{ grid-template-columns:1fr; height:auto; } }
 
 .pane{ min-width:0; min-height:0; display:flex; flex-direction:column;
@@ -136,9 +136,9 @@ main{ flex:1; min-height:0; display:grid;
             font-variant-numeric:tabular-nums; }
 
 /* ---------- extracted text, fit to WIDTH so it stays readable ---------- */
-.doc{ padding:24px 26px; }
+.doc{ padding:22px 24px; overflow:hidden; }
 .doc pre{ margin:0; font-family:var(--fm); font-size:14px; line-height:1.5; color:#16222F;
-          white-space:pre; tab-size:4; width:max-content; }
+          white-space:pre; tab-size:4; }
 .doc pre.flat{ color:#5A6B82; }
 .doc pre .ln{ display:block; opacity:0; animation:slidein .3s var(--ease) forwards; }
 @keyframes slidein{ from{ opacity:0; transform:translateX(-6px); } to{ opacity:1; transform:none; } }
@@ -146,7 +146,7 @@ pre.msg{ margin:0; padding:24px; font-family:var(--fm); font-size:12.5px; line-h
          color:var(--txt-2); white-space:pre-wrap; }
 
 /* ---------- tables: visible ruling, that was the missing bit ---------- */
-.tblwrap{ padding:22px 24px; }
+.tblwrap{ padding:20px 22px; overflow-x:auto; }
 .tblwrap h4{ font-size:13.5px; margin:0 0 9px; display:flex; align-items:center; gap:9px; }
 .tblwrap h4 em{ font-family:var(--fb); font-style:normal; font-weight:400; font-size:12px; color:var(--txt-3); }
 table.x{ border-collapse:collapse; width:100%; font-size:13px; margin-bottom:26px;
@@ -166,9 +166,9 @@ table.x td.num{ text-align:right; font-variant-numeric:tabular-nums; font-family
 .none{ padding:40px 24px; text-align:center; color:var(--txt-3); }
 .fignote{ margin:0 0 18px; font-size:12.5px; color:var(--txt-2); line-height:1.6;
           border-left:3px solid var(--violet); padding-left:12px; }
-.figrow{ display:grid; grid-template-columns:200px 1fr; gap:16px; align-items:start;
+.figrow{ display:grid; grid-template-columns:180px minmax(0,1fr); gap:14px; align-items:start;
          padding:14px 0; border-top:1px solid var(--line); }
-.figrow img{ width:100%; border:1px solid var(--line-2); border-radius:6px; background:#fff; }
+.figrow img{ width:100%; min-width:0; border:1px solid var(--line-2); border-radius:6px; background:#fff; }
 .figrow h4{ font-size:14px; display:flex; align-items:center; gap:9px; margin:0 0 4px; }
 .figrow h4 em{ font-family:var(--fb); font-style:normal; font-size:11px; font-weight:600;
                text-transform:uppercase; letter-spacing:.06em; color:#fff; background:var(--teal);
@@ -193,7 +193,7 @@ table.x td.num{ text-align:right; font-variant-numeric:tabular-nums; font-family
 .verdict{ flex:none; padding:8px 14px; font-size:12.5px; color:var(--txt-2);
           border-bottom:1px solid var(--line); background:#F6F3FF; }
 .verdict b{ color:var(--violet); }
-.scroll{ flex:1; min-height:0; overflow:auto; background:var(--desk); }
+.scroll{ flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; background:var(--desk); }
 .scroll > .sheet{ width:100%; min-width:0; }
 .scroll > .sheet{ margin:14px; }
 
@@ -367,36 +367,51 @@ function drawBoxes(d) {
 }
 
 /* ---------------- extraction ---------------- */
+/* Monospace advance as a fraction of font-size, measured once against the
+   real font rather than assumed. IBM Plex Mono is 0.6, but if the webfont
+   fails and a fallback loads, the assumption would be wrong and every page
+   would overflow. */
+let ADVANCE = null;
+function charAdvance(pre) {
+  if (ADVANCE) return ADVANCE;
+  const probe = document.createElement("span");
+  probe.textContent = "M".repeat(100);
+  probe.style.cssText = "position:absolute;visibility:hidden;white-space:pre";
+  probe.style.font = getComputedStyle(pre).font;
+  document.body.appendChild(probe);
+  const size = parseFloat(getComputedStyle(pre).fontSize) || 14;
+  ADVANCE = probe.getBoundingClientRect().width / 100 / size;
+  probe.remove();
+  return ADVANCE;
+}
+
+const MIN_PT = 7, MAX_PT = 19;
+
+/* Set the font size so the widest line lands on the margin.
+   Scaling with transform or zoom both failed here: transform does not
+   reflow, and zoom measured against a stale layout. Font size is the real
+   variable, it is exact, and the browser does the rest. */
 function applyZoom() {
   const doc = els.out.querySelector(".doc");
   if (!doc) return;
   const pre = doc.querySelector("pre");
   if (!pre) return;
 
-  // `zoom` rather than `transform: scale()`. transform does not change layout,
-  // so the parent kept reserving the unscaled width and the pane grew a
-  // horizontal scrollbar even at "fit". zoom reflows, so fit really fits.
-  pre.style.zoom = 1;
-  requestAnimationFrame(() => {
-    const avail = doc.clientWidth;
-    const need = pre.scrollWidth;
-    let k = zoom;
-    if (k === null) {
-      // Fit exactly. A "readable floor" here is what produced the sideways
-      // scrollbar: clamping above the true fit leaves the line wider than
-      // the pane. If it comes out small, + is right there.
-      k = need ? (avail - 4) / need : 1;
-      k = Math.min(k, 1.5);
-    }
-    pre.style.zoom = k.toFixed(4);
-    els.zPct.textContent = Math.round(k * 100) + "%";
-  });
+  const cols = +pre.dataset.cols || 80;
+  const avail = doc.clientWidth - 2;
+  const ratio = charAdvance(pre);
+
+  let px = zoom !== null ? zoom : avail / (cols * ratio);
+  px = Math.max(MIN_PT, Math.min(px, MAX_PT));
+  pre.style.fontSize = px.toFixed(2) + "px";
+  els.zPct.textContent = px.toFixed(1) + "px";
 }
 
 function renderText() {
   const text = tab === "flattened" ? data.flattened : data.preserved;
   const lines = (text || "(nothing)").split("\n");
-  els.out.innerHTML = `<div class="sheet"><div class="doc"><pre class="${tab==="flattened"?"flat":""}">${
+  const cols = Math.max(20, ...lines.map(l => l.length));
+  els.out.innerHTML = `<div class="sheet"><div class="doc"><pre data-cols="${cols}" class="${tab==="flattened"?"flat":""}">${
     lines.map((l,i) => `<span class="ln" style="animation-delay:${Math.min(i*9,700)}ms">${esc(l)||"&nbsp;"}</span>`).join("")
   }</pre></div></div>`;
   els.zoomBox.hidden = false;
@@ -581,8 +596,12 @@ els.tabs.forEach(b => b.onclick = () => {
   renderPane();
 });
 
-els.zIn.onclick  = () => { zoom = Math.min((zoom || 1) * 1.2, 4); applyZoom(); };
-els.zOut.onclick = () => { zoom = Math.max((zoom || 1) / 1.2, .25); applyZoom(); };
+function currentPx() {
+  const pre = els.out.querySelector(".doc pre");
+  return pre ? parseFloat(getComputedStyle(pre).fontSize) : 14;
+}
+els.zIn.onclick  = () => { zoom = Math.min(currentPx() + 1, MAX_PT); applyZoom(); };
+els.zOut.onclick = () => { zoom = Math.max(currentPx() - 1, MIN_PT); applyZoom(); };
 els.zFit.onclick = () => { zoom = null; applyZoom(); };
 
 els.pPrev.onclick  = () => gotoPage(data.page - 1);

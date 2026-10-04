@@ -133,7 +133,7 @@ def process(image_path: Path, width: int, height: int, *,
     flattened = L.flatten(boxes)
     analysis = L.analyse(boxes)
     tables = L.detect_tables(boxes)
-    figures = L.detect_figures(str(image_path), boxes)
+    figures = L.detect_figures(str(image_path), boxes, tables)   # tables first: a table is not a figure
     analysis["tables"] = len(tables)
     analysis["table_rows"] = sum(len(t["rows"]) for t in tables)
     analysis["figures"] = len(figures)

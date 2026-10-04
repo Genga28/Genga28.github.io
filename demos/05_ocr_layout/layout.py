@@ -511,7 +511,18 @@ def detect_tables(boxes: list[Box], min_rows: int = 3, min_cols: int = 2) -> lis
 # ==========================================================================
 # figures: charts, logos, stamps, signatures
 # ==========================================================================
-def detect_figures(image_path: str, boxes: list[Box], min_area_frac: float = 0.003) -> list[dict]:
+def _overlap(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> float:
+    """Fraction of box `a` that lies inside box `b`."""
+    ax0, ay0, ax1, ay1 = a
+    bx0, by0, bx1, by1 = b
+    ix = max(0.0, min(ax1, bx1) - max(ax0, bx0))
+    iy = max(0.0, min(ay1, by1) - max(ay0, by0))
+    area = (ax1 - ax0) * (ay1 - ay0)
+    return (ix * iy / area) if area > 0 else 0.0
+
+
+def detect_figures(image_path: str, boxes: list[Box], tables: list[dict] | None = None,
+                   min_area_frac: float = 0.003) -> list[dict]:
     """Find the non-text graphics on the page.
 
     The trick is subtractive rather than clever: threshold the page to an ink
@@ -588,8 +599,34 @@ def detect_figures(image_path: str, boxes: list[Box], min_area_frac: float = 0.0
             "labels": [b.text for b in sorted(inside, key=lambda b: (b.y0, b.x0))][:24],
         })
 
-    figures.sort(key=lambda f: (f["bbox"][1], f["bbox"][0]))
-    return figures
+    # 1. Anything already reported as a table is not a figure. A ruled table
+    #    is mostly non-text ink, so it lands here otherwise, and the same
+    #    region showing up twice under two different names is just wrong.
+    table_boxes = [(t["bbox"][0], t["bbox"][1], t["bbox"][2], t["bbox"][3])
+                   for t in (tables or [])]
+    kept = []
+    for f in figures:
+        x, y, w, h = f["bbox"]
+        rect = (x, y, x + w, y + h)
+        if any(_overlap(rect, tb) > 0.45 or _overlap(tb, rect) > 0.65 for tb in table_boxes):
+            continue
+        kept.append(f)
+
+    # 2. Drop fragments sitting inside a bigger figure. A chart's axis or a
+    #    detached gridline would otherwise be listed as its own graphic.
+    kept.sort(key=lambda f: f["bbox"][2] * f["bbox"][3], reverse=True)
+    final: list[dict] = []
+    for f in kept:
+        x, y, w, h = f["bbox"]
+        rect = (x, y, x + w, y + h)
+        if any(_overlap(rect, (g["bbox"][0], g["bbox"][1],
+                               g["bbox"][0] + g["bbox"][2],
+                               g["bbox"][1] + g["bbox"][3])) > 0.7 for g in final):
+            continue
+        final.append(f)
+
+    final.sort(key=lambda f: (f["bbox"][1], f["bbox"][0]))
+    return final
 
 
 def analyse(boxes: list[Box]) -> dict:
