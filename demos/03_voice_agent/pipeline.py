@@ -70,8 +70,11 @@ class Segmenter:
         # VADs disagreeing that completely is the tell.
         aggressiveness: int = 2,
         start_frames: int = 5,       # 100 ms of speech to open
-        end_frames: int = 24,        # 480 ms of silence to close: snappy but
-                                     # still survives a mid-sentence breath
+        end_frames: int = 19,        # 380 ms of silence to close. Every ms
+                                     # here is dead air at the end of every
+                                     # single thing the user says, and it is
+                                     # the largest single piece of the gap
+                                     # before the agent answers.
         # 20 s was long enough that one stuck utterance stalled the whole
         # conversation while small.en chewed through it.
         max_ms: int = 12_000,
@@ -221,6 +224,10 @@ class Transcriber:
             return ""
 
         text = " ".join(x.text.strip() for x in segments).strip()
+        # base.en likes to end a clip with a stray "//" or a run of dots and
+        # dashes. It is not a word, it reaches the model as one, and it ends
+        # up read aloud in the caption.
+        text = re.sub(r"[\s/\|_~^<>*=+-]+$", "", text).strip()
         if not text:
             return ""
 

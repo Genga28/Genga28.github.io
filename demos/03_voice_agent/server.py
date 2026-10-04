@@ -68,7 +68,7 @@ OUT_FRAME = OUT_RATE * 20 // 1000      # 20 ms
 # How often to re-decode the half-spoken utterance for the live caption.
 # Fast enough that the words appear while they are still talking, slow
 # enough that the partials never crowd out the real turn behind them.
-PARTIAL_EVERY = 0.6
+PARTIAL_EVERY = 0.55
 
 # How long someone has to keep talking over the agent before it counts as an
 # interruption rather than the agent hearing itself. On headphones this could
@@ -78,8 +78,10 @@ PARTIAL_EVERY = 0.6
 BARGE_FRAMES = 22                      # 440 ms of continuous speech
 BARGE_RMS = 0.02
 
-# The tail of the utterance a live caption is decoded from.
-PARTIAL_WINDOW = 7.0
+# The tail of the utterance a live caption is decoded from. Short, because
+# the cost scales with it and a caption only needs the words being said now.
+# The final decode still sees the whole utterance.
+PARTIAL_WINDOW = 3.5
 
 
 # ==========================================================================
@@ -280,7 +282,7 @@ class Session:
         it properly.
         """
         now = time.time()
-        if self._partial_busy or now - self._partial_at < PARTIAL_EVERY:
+        if self._busy or self._partial_busy or now - self._partial_at < PARTIAL_EVERY:
             return
         audio = self.seg.partial()
         if audio is None or len(audio) < SAMPLE_RATE * 0.5:
@@ -298,7 +300,7 @@ class Session:
     async def _run_partial(self, audio: np.ndarray) -> None:
         try:
             loop = asyncio.get_running_loop()
-            text = await loop.run_in_executor(None, self.state.stt, audio, True)
+            text = await loop.run_in_executor(None, self.state.stt_fast, audio, True)
             # Discard it if the utterance closed while we were decoding: the
             # final transcript is already on its way and is better.
             if text and text != self._partial_text and self.seg.active and not self._busy:
@@ -403,6 +405,15 @@ class State:
     def __init__(self, model: str, voice: str | None) -> None:
         self.conn = db()
         self.stt = Transcriber(model)
+        # A separate model for the live caption.
+        #
+        # Sharing one means the partial decode and the decode the reply
+        # actually waits on queue behind each other inside CTranslate2, so a
+        # caption nobody is waiting for delays the answer everybody is. A
+        # second base.en costs about 150 MB and removes the contention. The
+        # partial is throwaway text, so it always uses the fast model even
+        # when the final one is set to something heavier.
+        self.stt_fast = self.stt if model == "base.en" else Transcriber("base.en")
         self.speaker = Speaker(voice)
         self.sessions: dict[str, Session] = {}
         self.pcs: set[RTCPeerConnection] = set()
@@ -547,12 +558,18 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8080)
-    # small.en by default. base.en measured identical on clean synthesised
-    # speech and 2.7x faster, which is what it was first chosen on, but that
-    # audio was not representative: on a real microphone and a real accent it
-    # drops words. small.en still runs at about 0.57x real time, so there is
-    # headroom. WHISPER_MODEL=base.en in demos/.env goes back.
-    ap.add_argument("--whisper", default=os.environ.get("WHISPER_MODEL") or "small.en",
+    # base.en. I moved this to small.en on the theory it would read a real
+    # accent better than base.en managed on my synthetic corpus, and that
+    # was wrong in the way that matters. Timed on this machine, small.en
+    # takes 3.69s to transcribe a 2.2s sentence: slower than real time. Every
+    # turn opened with a four second hole and the live partials piled up
+    # behind it until nothing moved. base.en returns the identical text for
+    # the same clip in 0.76s.
+    #
+    # Accuracy was never the bottleneck here. The words were being lost to a
+    # VAD that would not close the utterance and to a microphone level that
+    # sat under every downstream threshold, both fixed above.
+    ap.add_argument("--whisper", default=os.environ.get("WHISPER_MODEL") or "base.en",
                     help="tiny.en | base.en | small.en  (or WHISPER_MODEL in .env)")
     ap.add_argument("--voice", default=os.environ.get("PIPER_VOICE") or None,
                     help="path to a Piper .onnx voice  (or PIPER_VOICE in .env)")
