@@ -136,9 +136,14 @@ main{ flex:1; min-height:0; display:grid;
             font-variant-numeric:tabular-nums; }
 
 /* ---------- extracted text, fit to WIDTH so it stays readable ---------- */
-.doc{ padding:22px 24px; overflow:hidden; }
+.doc{ padding:20px 22px; }
 .doc pre{ margin:0; font-family:var(--fm); font-size:14px; line-height:1.5; color:#16222F;
-          white-space:pre; tab-size:4; }
+          white-space:pre-wrap; overflow-wrap:break-word; tab-size:4; }
+/* A line too wide for the pane wraps with a hanging indent rather than
+   being clipped or forcing the type down to 7px. The indent makes a
+   continuation visibly a continuation and not a new row. */
+.doc pre .ln{ padding-left:5ch; text-indent:-5ch; }
+.doc pre .ln.wrapped{ border-left:2px solid #E2E7EF; margin-left:-7px; padding-left:calc(5ch + 5px); }
 .doc pre.flat{ color:#5A6B82; }
 .doc pre .ln{ display:block; opacity:0; animation:slidein .3s var(--ease) forwards; }
 @keyframes slidein{ from{ opacity:0; transform:translateX(-6px); } to{ opacity:1; transform:none; } }
@@ -387,7 +392,7 @@ function charAdvance(pre) {
   return ADVANCE;
 }
 
-const MIN_PT = 7, MAX_PT = 19;
+const MIN_PT = 10.5, MAX_PT = 19;
 
 /* Set the font size so the widest line lands on the margin.
    Scaling with transform or zoom both failed here: transform does not
@@ -399,6 +404,9 @@ function applyZoom() {
   const pre = doc.querySelector("pre");
   if (!pre) return;
 
+  // Size from the 92nd percentile line, not the single longest. One freak
+  // 214-character line should not drive the whole page down to 7px; it can
+  // wrap instead, which costs one line and keeps every other line readable.
   const cols = +pre.dataset.cols || 80;
   const avail = doc.clientWidth - 2;
   const ratio = charAdvance(pre);
@@ -406,14 +414,25 @@ function applyZoom() {
   let px = zoom !== null ? zoom : avail / (cols * ratio);
   px = Math.max(MIN_PT, Math.min(px, MAX_PT));
   pre.style.fontSize = px.toFixed(2) + "px";
-  els.zPct.textContent = px.toFixed(1) + "px";
+
+  // Mark the lines that actually wrap, so the hanging indent reads as a
+  // continuation rather than a mystery.
+  const limit = Math.floor((doc.clientWidth - 2) / (px * ratio));
+  pre.querySelectorAll(".ln").forEach(el => {
+    el.classList.toggle("wrapped", el.textContent.length > limit);
+  });
+
+  const widest = +pre.dataset.widest || 0;
+  els.zPct.textContent = px.toFixed(1) + "px" + (widest > limit ? ` · ${widest}c` : "");
 }
 
 function renderText() {
   const text = tab === "flattened" ? data.flattened : data.preserved;
   const lines = (text || "(nothing)").split("\n");
-  const cols = Math.max(20, ...lines.map(l => l.length));
-  els.out.innerHTML = `<div class="sheet"><div class="doc"><pre data-cols="${cols}" class="${tab==="flattened"?"flat":""}">${
+  const lens = lines.map(l => l.length).filter(n => n > 0).sort((a,b) => a-b);
+  const cols = Math.max(20, lens.length ? lens[Math.floor(lens.length * 0.92)] : 80);
+  const widest = Math.max(20, ...lines.map(l => l.length));
+  els.out.innerHTML = `<div class="sheet"><div class="doc"><pre data-cols="${cols}" data-widest="${widest}" class="${tab==="flattened"?"flat":""}">${
     lines.map((l,i) => `<span class="ln" style="animation-delay:${Math.min(i*9,700)}ms">${esc(l)||"&nbsp;"}</span>`).join("")
   }</pre></div></div>`;
   els.zoomBox.hidden = false;
