@@ -45,6 +45,23 @@ curl.exe -L -O https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US
 
 Both files must sit together. The server picks up the first `.onnx` it finds.
 
+### Optional: where you are, for the small talk
+
+```
+ARIA_LOCATION=Bengaluru
+```
+
+in `demos/.env`. Aria then knows the local time and the current weather and
+can open with something a person would say. Open-Meteo, no key, no account,
+fetched on a background thread and cached for fifteen minutes so a slow
+network never delays the greeting.
+
+Without it she still has the clock, which is most of the value. There is
+deliberately no IP geolocation fallback: a demo should not quietly ask a
+third party roughly where you live. On Linux and macOS the local timezone
+carries an IANA city name and that is used automatically; Windows reports
+"India Standard Time", which is a zone, not a place, and geocodes to nothing.
+
 ### Optional: the Claude brain
 
 ```powershell
@@ -97,6 +114,43 @@ Join, let it greet you, have a 40-second conversation, stop. The caption bar and
 the jaw movement are what sell it, so keep the window at 1280x720 and record
 system audio as well as the mic.
 
+## What it does with your voice
+
+The caption updates **while you are still speaking**. Whisper has no
+streaming mode, so this is the partial buffer re-decoded every 600 ms and the
+text replaced; at base.en's 0.26x real time there is room for that, and a
+single in-flight flag means a slow decode skips a beat rather than queueing
+behind itself. The partial is a caption only and never reaches the model.
+The turn still waits for the segmenter to close the utterance and decode it
+properly. A provisional line is shown in italic with a caret, because a
+re-decode changes its own last words and a settled-looking line that keeps
+rewriting itself looks broken.
+
+### Why it stopped hearing things you did not say
+
+Whisper is generative and will write *something* for any audio at all.
+Measured here with `base.en` and no guards: 1.5 s of digital silence
+transcribes as "You", and so does low-level room noise. That is where random
+words come from, and the agent then answers them in earnest.
+
+| Input | no guards | with guards |
+|---|---|---|
+| silence, 1.5 s | `"You"` | empty |
+| quiet hiss | empty | empty |
+| room noise | `"You"` | empty |
+| keyboard click | empty | empty |
+| four spoken sentences | word perfect | word perfect |
+
+The guards are `vad_filter` plus `no_speech_threshold`, `log_prob_threshold`
+and `compression_ratio_threshold`, an RMS gate before the decoder so it is
+never asked to interpret near-silence, and a rejection rule for very short
+results with a poor mean log probability. They cost nothing measurable:
+`base.en` still runs at about 0.26x real time.
+
+`small.en` is available with `--whisper small.en`. On this corpus it was no
+more accurate than `base.en` and 2.7x slower, so it is not the default;
+it is likely worth it on a noisier microphone than the one this was tested on.
+
 ## Files
 
 | File | What's in it |
@@ -104,7 +158,7 @@ system audio as well as the mic.
 | `pipeline.py` | VAD segmenter, Whisper wrapper, Claude brain, Piper/SAPI speaker |
 | `server.py` | FastAPI, aiortc peer, the outbound audio track, orchestration, SQLite |
 | `web/index.html` | Room UI and all of its CSS |
-| `web/app.js` | WebRTC handshake, captions, Three.js avatar |
+| `web/app.js` | WebRTC handshake, captions, the procedural Three.js bust |
 | `session.db` | Every turn, with latency, written as it happens |
 
 ## Honest limits
@@ -113,7 +167,14 @@ system audio as well as the mic.
   problem LiveKit exists to solve.
 - `iceServers` is empty because both peers are on this machine. Put it on a
   network and it needs STUN, and behind symmetric NAT it needs TURN.
-- The avatar is procedural geometry, not a rigged human. Swapping in a Ready
-  Player Me GLB with ARKit blendshapes is a `GLTFLoader` call plus mapping
-  `mouth` onto the `jawOpen` morph target — the amplitude signal is already there.
+- The avatar is procedural geometry, not a scanned human: a shaped skull with
+  a hinged jaw, lids that close, eyes that saccade and a chest that breathes,
+  all built from primitives at load time. No asset to download and no licence
+  to track, and the things that actually read as alive are the motion rather
+  than the polygon count. It will not pass for a photograph. Swapping in a
+  Ready Player Me GLB with ARKit blendshapes is a `GLTFLoader` call plus
+  mapping `mouth` onto the `jawOpen` morph target; the amplitude signal is
+  already there.
+- Vertical gaze on the avatar is cosmetic. It is driven by an idle model, not
+  by anything it can see: there is no camera input on this demo.
 - Echo cancellation is the browser's. Without headphones it is not enough.

@@ -118,6 +118,15 @@ body.speaking  .statepill .dot{ background:var(--teal); box-shadow:0 0 14px var(
 @keyframes wordin{ to{ opacity:1; transform:none; } }
 .cap.user{ font-size:15.5px; color:var(--txt-2); }
 .cap.user::before{ content:"you  "; color:var(--blue); font-weight:600; }
+/* A partial is a re-decode of a half-spoken sentence and its last words will
+   change. Showing it in the same weight as a settled line makes the UI look
+   like it keeps correcting itself, so it reads as provisional instead. */
+.cap.user.live{ color:var(--txt-3); font-style:italic; }
+.cap.user.live::after{
+  content:""; display:inline-block; width:2px; height:1em; margin-left:5px;
+  vertical-align:-2px; background:var(--blue); animation:caret 1s steps(2) infinite;
+}
+@keyframes caret{ 50%{ opacity:0; } }
 
 /* ---------- pip ---------- */
 .pip{

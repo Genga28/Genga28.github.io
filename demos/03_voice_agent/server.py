@@ -65,6 +65,11 @@ DB = HERE / "session.db"
 OUT_RATE = 48_000                      # what WebRTC wants on the wire
 OUT_FRAME = OUT_RATE * 20 // 1000      # 20 ms
 
+# How often to re-decode the half-spoken utterance for the live caption.
+# Fast enough that the words appear while they are still talking, slow
+# enough that the partials never crowd out the real turn behind them.
+PARTIAL_EVERY = 0.6
+
 
 # ==========================================================================
 # storage
@@ -160,6 +165,9 @@ class Session:
         self._tail = np.zeros(0, dtype=np.int16)
         self._busy = False
         self._speak_task: asyncio.Task | None = None
+        self._partial_at = 0.0
+        self._partial_busy = False
+        self._partial_text = ""
 
         self.state.conn.execute(
             "INSERT OR REPLACE INTO sessions VALUES (?,?,?,?)",
@@ -208,7 +216,49 @@ class Session:
 
             utterance = self.seg.push(frame)
             if utterance is not None and not self._busy:
+                self._partial_text = ""
                 asyncio.create_task(self._turn(utterance))
+            elif self.seg.active and not self._busy:
+                self._maybe_partial()
+
+    # ---------- the user's words, while they are still speaking ----------
+    def _maybe_partial(self) -> None:
+        """Re-decode the utterance so far, at most one decode in flight.
+
+        Whisper has no streaming mode: it transcribes a finished buffer. So
+        a live caption means decoding the partial buffer again every so
+        often and replacing the text. base.en runs at about 0.26x real time,
+        which leaves plenty of headroom at this cadence, and the single
+        in-flight flag means a slow decode simply skips a beat instead of
+        queueing up behind itself and falling further behind.
+
+        Nothing here can reach the model. The partial is a caption only; the
+        turn still waits for the segmenter to close the utterance and decode
+        it properly.
+        """
+        now = time.time()
+        if self._partial_busy or now - self._partial_at < PARTIAL_EVERY:
+            return
+        audio = self.seg.partial()
+        if audio is None or len(audio) < SAMPLE_RATE * 0.5:
+            return
+        self._partial_at = now
+        self._partial_busy = True
+        asyncio.create_task(self._run_partial(audio))
+
+    async def _run_partial(self, audio: np.ndarray) -> None:
+        try:
+            loop = asyncio.get_running_loop()
+            text = await loop.run_in_executor(None, self.state.stt, audio, True)
+            # Discard it if the utterance closed while we were decoding: the
+            # final transcript is already on its way and is better.
+            if text and text != self._partial_text and self.seg.active and not self._busy:
+                self._partial_text = text
+                await self.emit("caption", who="user", text=text, final=False)
+        except Exception as exc:
+            log.debug("partial decode skipped: %s", exc)
+        finally:
+            self._partial_busy = False
 
     # ---------- one exchange ----------
     async def _turn(self, audio: np.ndarray) -> None:
