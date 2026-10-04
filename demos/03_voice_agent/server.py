@@ -37,7 +37,7 @@ from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 from aiortc.mediastreams import MediaStreamError
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 # demos/.env is shared by every demo and must load before pipeline reads it.
@@ -69,6 +69,17 @@ OUT_FRAME = OUT_RATE * 20 // 1000      # 20 ms
 # Fast enough that the words appear while they are still talking, slow
 # enough that the partials never crowd out the real turn behind them.
 PARTIAL_EVERY = 0.6
+
+# How long someone has to keep talking over the agent before it counts as an
+# interruption rather than the agent hearing itself. On headphones this could
+# be near zero; on speakers the microphone picks up her own output, and a
+# zero-length test makes her cut herself off mid-word. A real interruption
+# lasts and is loud; echo that survives the browser's canceller is neither.
+BARGE_FRAMES = 22                      # 440 ms of continuous speech
+BARGE_RMS = 0.02
+
+# The tail of the utterance a live caption is decoded from.
+PARTIAL_WINDOW = 7.0
 
 
 # ==========================================================================
@@ -170,6 +181,7 @@ class Session:
         self._partial_text = ""
         self._queued: np.ndarray | None = None
         self._cancel = False
+        self._over = 0                 # frames of speech on top of the agent
 
         self.state.conn.execute(
             "INSERT OR REPLACE INTO sessions VALUES (?,?,?,?)",
@@ -211,13 +223,29 @@ class Session:
         while len(self._tail) >= FRAME_SAMPLES:
             frame, self._tail = self._tail[:FRAME_SAMPLES], self._tail[FRAME_SAMPLES:]
 
-            # Barge-in. This used to be gated on `not self._busy`, which it can
-            # never satisfy: voice.speaking is only true while a turn is in
-            # flight, and a turn in flight is exactly what _busy means. So
-            # barge-in never fired once, and talking over Aria did nothing.
-            if self.seg.active and self.voice.speaking:
+            # Barge-in, and the reason it is not a one-line check.
+            #
+            # It was first gated on `not self._busy`, which it can never
+            # satisfy, so it never fired at all. Removing that gate made it
+            # fire far too easily instead: on speakers the microphone hears
+            # the agent, the VAD opens on her own voice, she cuts herself off
+            # mid-sentence, and then she stays silent, because the cancel
+            # flag she just set is only cleared at the end of a turn and the
+            # greeting does not run inside one.
+            #
+            # So an interruption now has to look like one: continuously
+            # voiced for BARGE_FRAMES and louder than BARGE_RMS.
+            loud = float(np.sqrt(np.mean((frame.astype(np.float32) / 32768.0) ** 2)))
+            if self.voice.speaking and self.seg.active and loud > BARGE_RMS:
+                self._over += 1
+            else:
+                self._over = 0
+
+            if self._over == BARGE_FRAMES:
                 await self.voice.flush()
                 self._cancel = True
+                self.seg.reset()
+                log.info("[%s] barge-in", self.sid[:8])
                 await self.emit("state", state="listening", note="barge-in")
 
             utterance = self.seg.push(frame)
@@ -226,10 +254,9 @@ class Session:
                 if self._busy:
                     # Hold it, do not bin it. Dropping whatever someone says
                     # while the agent is still talking is most of what makes
-                    # an agent feel like it is ignoring you, and it is
-                    # silent: nothing in the log says a sentence was lost.
+                    # an agent feel like it is ignoring you, and it is silent:
+                    # nothing in the log says a sentence was lost.
                     self._queued = utterance
-                    self._cancel = True
                     log.info("[%s] queued %0.1fs spoken over the agent",
                              self.sid[:8], len(utterance) / SAMPLE_RATE)
                 else:
@@ -258,6 +285,12 @@ class Session:
         audio = self.seg.partial()
         if audio is None or len(audio) < SAMPLE_RATE * 0.5:
             return
+        # Only ever the last few seconds. A partial re-decodes the whole
+        # buffer, so on a long utterance the cost grows without limit: at
+        # small.en's 0.57x real time a 20 s buffer takes 11 s, by which point
+        # the decode is useless and the queue behind it is worse. The caption
+        # only needs the words someone is saying now.
+        audio = audio[-int(SAMPLE_RATE * PARTIAL_WINDOW):]
         self._partial_at = now
         self._partial_busy = True
         asyncio.create_task(self._run_partial(audio))
@@ -279,6 +312,11 @@ class Session:
     # ---------- one exchange ----------
     async def _turn(self, audio: np.ndarray) -> None:
         self._busy = True
+        # Always begin uncancelled. A flag left set by anything outside a
+        # turn breaks out of the reply loop before the first sentence, and
+        # the agent then never speaks again for the rest of the call.
+        self._cancel = False
+        self._over = 0
         loop = asyncio.get_running_loop()
         t0 = time.time()
         try:
@@ -330,6 +368,20 @@ class Session:
                 asyncio.create_task(self._turn(queued))
 
     async def greet(self) -> None:
+        # Held busy for the whole greeting. Without it an echo of the
+        # greeting is taken for the user's first utterance and starts a turn
+        # while she is still saying hello.
+        self._busy = True
+        try:
+            await self._greet()
+        finally:
+            self._busy = False
+            self._cancel = False
+            self._over = 0
+            self.seg.reset()
+            self._queued = None        # anything heard during it was her
+
+    async def _greet(self) -> None:
         loop = asyncio.get_running_loop()
         await asyncio.sleep(0.8)
         await self.emit("state", state="speaking")
@@ -399,7 +451,18 @@ async def no_store(request: Request, call_next):
 
 @app.get("/")
 async def index():
-    return FileResponse(WEB / "index.html")
+    """index.html with the asset URLs stamped by their mtime.
+
+    no-store tells a browser not to reuse what it has, but a module already
+    resolved in an open tab can still be served from memory, and then an
+    edited UI simply does not appear with nothing anywhere to explain it.
+    A changing URL is not a request to revalidate, it is a different file.
+    """
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    for name in ("app.js",):
+        stamp = int((WEB / name).stat().st_mtime)
+        html = html.replace(f"/static/{name}", f"/static/{name}?v={stamp}")
+    return HTMLResponse(html, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/health")

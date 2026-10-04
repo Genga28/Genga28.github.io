@@ -51,34 +51,57 @@ const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
 camera.position.set(0, 0.10, 5.0);
 
 const COL = { blue: 0x7ab8ff, violet: 0xb49bf5, teal: 0x5fd9c4, pink: 0xf49bb8 };
-const SKIN = 0xd99f78, SKIN_DEEP = 0xb87a56, HAIR = 0x221b22, LIP = 0xa8615c;
+const SKIN = 0xf0b48c, SKIN_DEEP = 0xd99468, HAIR = 0x2e2430, LIP = 0xc2706a;
 
 // Head half-axes. Every feature position below is in these units.
 const AX = 0.74, AY = 0.92, AZ = 0.80;
 const surfZ = (x, y) =>
   AZ * Math.sqrt(Math.max(0, 1 - (x / AX) ** 2 - (y / AY) ** 2));
 
-/* Three-point portrait lighting: warm key, cool fill, violet rim. A face lit
-   flat from the front reads as a mask. */
-scene.add(new THREE.HemisphereLight(0x93a9cc, 0x3a2b33, 1.0));
-const key = new THREE.DirectionalLight(0xfff1e2, 2.4);
-key.position.set(2.4, 2.8, 4.4);
+/* Flat and even, the way an illustration is lit. Dramatic three-point
+   lighting is what a photograph wants; on simple geometry it just pools
+   shadow in every crease and makes the shapes look unfinished. One soft key
+   gives the toon ramp something to band against, and a gentle rim keeps the
+   silhouette off the background. */
+scene.add(new THREE.HemisphereLight(0xdfe8f6, 0x8e7f93, 2.0));
+const key = new THREE.DirectionalLight(0xfff6ec, 1.5);
+key.position.set(1.6, 2.4, 4.6);
 scene.add(key);
-const fill = new THREE.DirectionalLight(COL.blue, 0.75);
-fill.position.set(-3.4, 0.2, 2.6);
-scene.add(fill);
-const rim = new THREE.DirectionalLight(COL.violet, 2.0);
-rim.position.set(-2.0, 2.2, -3.2);
+const rim = new THREE.DirectionalLight(COL.violet, 1.1);
+rim.position.set(-2.6, 1.8, -2.6);
 scene.add(rim);
+
+/* Two hard steps, which is what makes it read as drawn rather than rendered:
+   a lit side and a shade side with a crisp edge between them. */
+const ramp = new THREE.DataTexture(
+  new Uint8Array([120, 120, 120, 255, 255, 255, 255, 255]), 2, 1, THREE.RGBAFormat);
+ramp.needsUpdate = true;
+ramp.minFilter = ramp.magFilter = THREE.NearestFilter;
+
+const toon = (color) => new THREE.MeshToonMaterial({ color, gradientMap: ramp });
+
+/* Inverted-hull outline: the same geometry again, grown a little, drawn
+   back faces only. The front faces of the real mesh cover all of it except
+   a rim at the silhouette, which is the ink line. */
+const INK = 0x241c2b;
+function outline(mesh, grow = 1.035) {
+  const shell = new THREE.Mesh(mesh.geometry, new THREE.MeshBasicMaterial({
+    color: INK, side: THREE.BackSide,
+  }));
+  shell.scale.multiplyScalar(grow);
+  shell.renderOrder = -1;
+  mesh.add(shell);
+  return mesh;
+}
 
 const avatar = new THREE.Group();
 avatar.position.y = -0.85;
 scene.add(avatar);
 
-const skin = new THREE.MeshStandardMaterial({ color: SKIN, roughness: 0.64, metalness: 0.02 });
-const skinDeep = new THREE.MeshStandardMaterial({ color: SKIN_DEEP, roughness: 0.68, metalness: 0.02 });
-const hairMat = new THREE.MeshStandardMaterial({ color: HAIR, roughness: 0.82, metalness: 0.04 });
-const lipMat = new THREE.MeshStandardMaterial({ color: LIP, roughness: 0.42, metalness: 0.02 });
+const skin = toon(SKIN);
+const skinDeep = toon(SKIN_DEEP);
+const hairMat = toon(HAIR);
+const lipMat = toon(LIP);
 
 /* ---- head ---------------------------------------------------------------
    A sphere is a ball. Four displacements make it a head: a jaw that narrows
@@ -114,7 +137,7 @@ avatar.add(head);
 const skullGeo = new THREE.SphereGeometry(1, 72, 56);
 shapeSkull(skullGeo);
 skullGeo.scale(AX, AY, AZ);        // baked, so head space is real space
-head.add(new THREE.Mesh(skullGeo, skin));
+head.add(outline(new THREE.Mesh(skullGeo, skin), 1.022));
 
 /* ---- hair ---------------------------------------------------------------
    A cap cut at a constant angle gives a hairline that is level all the way
@@ -123,7 +146,7 @@ head.add(new THREE.Mesh(skullGeo, skin));
 // A cap cut at a constant angle gives a level brim all the way round, which
 // reads as a beanie. Dropping the edge towards the back and the sides, and
 // keeping it high over the brows, gives something closer to a hairline.
-const HAIRLINE = 0.42;             // at the forehead; brows sit at 0.27
+const HAIRLINE = 0.50;             // at the forehead; brows sit at 0.325
 const capGeo = new THREE.SphereGeometry(1, 64, 44, 0, Math.PI * 2, 0, Math.PI * 0.62);
 shapeSkull(capGeo);
 {
@@ -148,14 +171,14 @@ shapeSkull(capGeo);
   capGeo.computeVertexNormals();
 }
 capGeo.scale(AX * 1.05, AY * 1.035, AZ * 1.05);
-head.add(new THREE.Mesh(capGeo, hairMat));
+head.add(outline(new THREE.Mesh(capGeo, hairMat), 1.03));
 
 // Rear half only. phi runs around Y with +Z at a quarter turn, so pi to two
 // pi is exactly the back; a full shell here is a sack over the face.
 const backGeo = new THREE.SphereGeometry(1, 48, 36, Math.PI, Math.PI, 0, Math.PI * 0.78);
 shapeSkull(backGeo);
 backGeo.scale(AX * 1.05, AY * 1.03, AZ * 1.05);
-const backHair = new THREE.Mesh(backGeo, hairMat);
+const backHair = outline(new THREE.Mesh(backGeo, hairMat), 1.03);
 backHair.position.z = -0.03;
 head.add(backHair);
 
@@ -196,16 +219,15 @@ head.add(tip);
    Eyeball, iris, pupil and two lids as separate meshes, so the eyes can
    actually look somewhere and actually close. A painted-on eye can do
    neither, and both are things people read instantly. */
-const EYE_X = 0.272, EYE_Y = 0.075, EYE_R = 0.118;
-const EYE_Z = surfZ(EYE_X, EYE_Y) - 0.098;   // set in, not stuck on
-const scleraMat = new THREE.MeshStandardMaterial({ color: 0xf4efe9, roughness: 0.2 });
-const irisMat = new THREE.MeshStandardMaterial({
-  color: 0x5a3a20, roughness: 0.16, metalness: 0.08,
-  emissive: 0x2a1a0c, emissiveIntensity: 0.35,
-});
-const lidMat = new THREE.MeshStandardMaterial({ color: SKIN, roughness: 0.62, side: THREE.DoubleSide });
-const browMat = new THREE.MeshStandardMaterial({ color: HAIR, roughness: 0.85 });
-const BROW_Y = 0.27;
+const EYE_X = 0.268, EYE_Y = 0.065, EYE_R = 0.142;
+const EYE_Z = surfZ(EYE_X, EYE_Y) - 0.112;   // set in, not stuck on
+// Flat, unshaded eyes. A lit sclera picks up a highlight on the wrong side
+// and immediately reads as a glass bead stuck to a face.
+const scleraMat = new THREE.MeshBasicMaterial({ color: 0xfdfaf6 });
+const irisMat = new THREE.MeshBasicMaterial({ color: 0x4a2f17 });
+const lidMat = new THREE.MeshToonMaterial({ color: SKIN, gradientMap: ramp, side: THREE.DoubleSide });
+const browMat = new THREE.MeshBasicMaterial({ color: 0x4b3a44 });
+const BROW_Y = 0.325;
 
 const eyes = [-1, 1].map((s) => {
   const socket = new THREE.Group();
@@ -216,14 +238,14 @@ const eyes = [-1, 1].map((s) => {
   socket.add(ball);
 
   // the iris rides on the ball, so rotating the ball aims the gaze
-  const iris = new THREE.Mesh(new THREE.CircleGeometry(0.05, 28), irisMat);
+  const iris = new THREE.Mesh(new THREE.CircleGeometry(0.068, 28), irisMat);
   iris.position.z = EYE_R * 0.975;
   ball.add(iris);
-  iris.add(new THREE.Mesh(new THREE.CircleGeometry(0.022, 20),
-    new THREE.MeshBasicMaterial({ color: 0x0a0708 })).translateZ(0.002));
-  const glint = new THREE.Mesh(new THREE.CircleGeometry(0.013, 12),
+  iris.add(new THREE.Mesh(new THREE.CircleGeometry(0.032, 20),
+    new THREE.MeshBasicMaterial({ color: 0x120c10 })).translateZ(0.002));
+  const glint = new THREE.Mesh(new THREE.CircleGeometry(0.021, 14),
     new THREE.MeshBasicMaterial({ color: 0xffffff }));
-  glint.position.set(0.021, 0.023, 0.004);
+  glint.position.set(0.028, 0.030, 0.004);
   iris.add(glint);
 
   const upper = new THREE.Mesh(
@@ -236,7 +258,7 @@ const eyes = [-1, 1].map((s) => {
   lower.scale.x = 1.22;
   socket.add(lower);
 
-  const brow = new THREE.Mesh(new THREE.CapsuleGeometry(0.032, 0.2, 5, 12), browMat);
+  const brow = new THREE.Mesh(new THREE.CapsuleGeometry(0.021, 0.19, 5, 12), browMat);
   brow.rotation.z = Math.PI / 2;
   brow.rotation.y = -0.18 * s;
   brow.position.set(EYE_X * s, BROW_Y, surfZ(EYE_X * s, BROW_Y) + 0.01);
@@ -274,7 +296,7 @@ const inJaw = (x, y, z) => [x, y - JAW_Y, z - JAW_Z];
 // only grows downwards, which is what a mouth does.
 const CAVITY_TOP = MOUTH_Y + 0.012;
 const cavity = new THREE.Mesh(new THREE.SphereGeometry(0.14, 24, 18),
-  new THREE.MeshStandardMaterial({ color: 0x3a1118, roughness: 0.95 }));
+  new THREE.MeshBasicMaterial({ color: 0x59232c }));
 cavity.scale.set(0.86, 0.08, 0.22);
 cavity.position.set(0, CAVITY_TOP, MOUTH_Z + 0.026);
 head.add(cavity);
@@ -290,7 +312,7 @@ lowerLip.position.set(...inJaw(0, MOUTH_Y - 0.036, MOUTH_Z + 0.022));
 jaw.add(lowerLip);
 
 /* ---- neck and shoulders ------------------------------------------------- */
-const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.215, 0.27, 0.78, 28), skinDeep);
+const neck = outline(new THREE.Mesh(new THREE.CylinderGeometry(0.215, 0.27, 0.78, 28), skinDeep), 1.03);
 neck.position.y = 0.42;
 avatar.add(neck);
 
@@ -298,8 +320,8 @@ const torso = new THREE.Group();
 torso.position.y = -0.46;
 avatar.add(torso);
 
-const shirt = new THREE.MeshStandardMaterial({ color: 0x2a3450, roughness: 0.86 });
-const shoulders = new THREE.Mesh(new THREE.CapsuleGeometry(0.31, 1.2, 10, 26), shirt);
+const shirt = toon(0x3d5a8a);
+const shoulders = outline(new THREE.Mesh(new THREE.CapsuleGeometry(0.31, 1.2, 10, 26), shirt), 1.02);
 shoulders.rotation.z = Math.PI / 2;
 shoulders.position.y = 0.3;
 torso.add(shoulders);
@@ -310,7 +332,7 @@ chest.position.y = -0.1;
 torso.add(chest);
 
 const collar = new THREE.Mesh(new THREE.TorusGeometry(0.235, 0.05, 12, 32),
-  new THREE.MeshStandardMaterial({ color: 0x35405f, roughness: 0.8 }));
+  toon(0x4a6ba3));
 collar.rotation.x = Math.PI / 2;
 collar.position.y = 0.42;
 torso.add(collar);
@@ -452,14 +474,14 @@ function step(t, dt) {
     e.ball.rotation.x = -gaze.y * 0.2;
     // At rest the upper lid clears the top of the iris and the lower sits
     // under it; a blink sweeps the upper one right down over the ball.
-    e.upper.rotation.x = -0.80 + (lid + squint) * 2.05;
+    e.upper.rotation.x = -1.05 + (lid + squint) * 2.3;
     e.lower.rotation.x = 0.38 - (lid + squint * 0.4) * 0.45;
     e.brow.position.y = BROW_Y + browLift * 0.045;
     e.brow.rotation.x = -browLift * 0.25;
   });
 
   /* ---- ambience ---- */
-  glow.material.opacity = 0.055 + mouth * 0.08 + (thinking ? 0.045 : 0);
+  glow.material.opacity = 0.07 + mouth * 0.09 + (thinking ? 0.05 : 0);
   glow.material.color.set(speaking ? COL.blue : COL.violet);
 
   const pa = pGeo.attributes.position;

@@ -34,6 +34,11 @@ import numpy as np
 
 log = logging.getLogger("pipeline")
 
+# faster-whisper logs two lines for every decode. With a live partial every
+# 600 ms that buries everything else in the terminal, including the lines
+# that say what was actually heard.
+logging.getLogger("faster_whisper").setLevel(logging.WARNING)
+
 HERE = Path(__file__).parent
 VOICES = HERE / "voices"
 
@@ -56,11 +61,20 @@ class Segmenter:
 
     def __init__(
         self,
-        aggressiveness: int = 1,     # permissive: a missed onset costs a whole turn
-        start_frames: int = 4,       # 80 ms of speech to open
+        # Aggressiveness 2, not 1. At 1 webrtcvad calls ordinary room noise
+        # speech, so the utterance never ends: the buffer runs all the way to
+        # max_ms, flushes, and starts again, and because a turn only begins
+        # when an utterance *closes*, nothing is ever answered. Silero,
+        # downstream and far more accurate, was meanwhile throwing away 100%
+        # of every one of those buffers as containing no speech at all. Two
+        # VADs disagreeing that completely is the tell.
+        aggressiveness: int = 2,
+        start_frames: int = 5,       # 100 ms of speech to open
         end_frames: int = 24,        # 480 ms of silence to close: snappy but
                                      # still survives a mid-sentence breath
-        max_ms: int = 20_000,
+        # 20 s was long enough that one stuck utterance stalled the whole
+        # conversation while small.en chewed through it.
+        max_ms: int = 12_000,
     ) -> None:
         try:
             import webrtcvad
@@ -165,6 +179,8 @@ GHOST_LP = -0.75    # only drop a ghost word when the model was unsure too
 # length. The earlier 0.006 was set from synthesised audio at full scale and
 # silently swallowed real sentences spoken at a normal volume.
 MIN_RMS = 0.0022
+TARGET_RMS = 0.06      # a normal speaking level once normalised
+MAX_GAIN = 12.0        # enough for a quiet mic, not enough to turn hiss into words
 
 
 class Transcriber:
@@ -183,8 +199,21 @@ class Transcriber:
         # An energy gate before the model, not after. Running a generative
         # decoder on something with no speech in it is how invented words get
         # a chance to exist in the first place.
-        if audio.size == 0 or float(np.sqrt(np.mean(audio ** 2))) < MIN_RMS:
+        if audio.size == 0:
             return ""
+        rms = float(np.sqrt(np.mean(audio ** 2)))
+        if rms < MIN_RMS:
+            return ""
+
+        # Bring the clip up to a normal speaking level. Laptop microphones
+        # vary by more than a factor of ten, and everything downstream has an
+        # absolute threshold: Silero's speech probability, whisper's
+        # no-speech threshold, the log-probability floor. On a quiet mic all
+        # three fire at once and every single clip comes back empty, which
+        # looks exactly like the model being deaf. Gain is capped so that
+        # amplifying near-silence cannot manufacture speech out of hiss.
+        audio = audio * min(TARGET_RMS / max(rms, 1e-6), MAX_GAIN)
+        np.clip(audio, -1.0, 1.0, out=audio)
 
         segments, _ = self._model.transcribe(audio, **DECODE)
         segments = list(segments)
