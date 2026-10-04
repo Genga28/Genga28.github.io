@@ -148,11 +148,16 @@ def ocr(path: Path) -> tuple[dict, str]:
     """OCR the invoice. Returns (fields, engine-used)."""
     try:
         import pytesseract
-        from shutil import which
 
-        exe = which("tesseract") or r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-        if Path(exe).exists():
-            pytesseract.pytesseract.tesseract_cmd = exe
+        # One Tesseract search, shared with the OCR studio, so there is a
+        # single place to fix when an install path changes.
+        sys.path.insert(0, str(HERE.parent / "05_ocr_layout"))
+        from layout import find_tesseract
+
+        exe = find_tesseract()
+        if not exe:
+            raise RuntimeError("tesseract binary not found")
+        pytesseract.pytesseract.tesseract_cmd = exe
         text = pytesseract.image_to_string(Image.open(path))
 
         found = {}

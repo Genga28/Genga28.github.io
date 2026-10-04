@@ -84,20 +84,48 @@ class PaddleEngine:
         return out
 
 
+# Where Tesseract actually installs on Windows, in the order worth trying.
+# PATH first, then the two paths the UB-Mannheim installer uses, then the
+# Chocolatey and Scoop locations. TESSERACT_CMD in .env overrides all of it.
+TESSERACT_PATHS = [
+    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+    r"C:\ProgramData\chocolatey\bin\tesseract.exe",
+    str(Path.home() / "scoop" / "apps" / "tesseract" / "current" / "tesseract.exe"),
+    str(Path.home() / "AppData" / "Local" / "Tesseract-OCR" / "tesseract.exe"),
+    "/usr/bin/tesseract",
+    "/usr/local/bin/tesseract",
+    "/opt/homebrew/bin/tesseract",
+]
+
+
+def find_tesseract() -> str | None:
+    """First Tesseract binary that actually exists, or None."""
+    from shutil import which
+
+    for candidate in [os.environ.get("TESSERACT_CMD"), which("tesseract"), *TESSERACT_PATHS]:
+        if candidate and Path(candidate).exists():
+            return candidate
+    return None
+
+
 class TesseractEngine:
     name = "tesseract"
 
     def __init__(self, lang: str = "eng") -> None:
         import pytesseract
-        from shutil import which
 
-        exe = (os.environ.get("TESSERACT_CMD") or which("tesseract")
-               or r"C:\Program Files\Tesseract-OCR\tesseract.exe")
-        if Path(exe).exists():
-            pytesseract.pytesseract.tesseract_cmd = exe
+        exe = find_tesseract()
+        if not exe:
+            raise RuntimeError(
+                "Tesseract binary not found. Install it from "
+                "https://github.com/UB-Mannheim/tesseract/wiki, or set TESSERACT_CMD "
+                "in demos/.env to its full path."
+            )
+        pytesseract.pytesseract.tesseract_cmd = exe
         self._pt = pytesseract
         self._lang = lang
-        self._pt.get_tesseract_version()          # raises if the binary is missing
+        self._pt.get_tesseract_version()          # raises if the binary is broken
 
     def __call__(self, image_path: str) -> list[Box]:
         from PIL import Image

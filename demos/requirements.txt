@@ -19,6 +19,7 @@ selenium==4.25.0             # 4.6+ resolves chromedriver itself
 aiortc==1.9.0                # our own WebRTC peer, no SFU vendor
 av==12.3.0
 fastapi==0.115.0
+python-multipart==0.0.12   # FastAPI needs it for file uploads
 uvicorn[standard]==0.30.6
 webrtcvad-wheels==2.0.14     # prebuilt; plain `webrtcvad` needs a C compiler on Windows
 faster-whisper==1.0.3        # local STT
