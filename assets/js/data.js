@@ -173,15 +173,6 @@ const DEFAULTS = {
   /* Demo videos. Video links live in `videos` below, keyed by id. */
   demos:[
     {
-      id:"proctoring", c:COLORS.blue, tag:"Computer vision",
-      poster:"assets/img/demos/proctoring.jpg",
-      title:"Gaze & presence tracker",
-      line:"Tracks eyes, head pose and extra faces from a webcam, then fuses them into one live 0–100 risk score.",
-      tech:["MediaPipe","OpenCV","Python"],
-      flow:["Webcam","Face mesh","Gaze + pose","Fusion","Score"],
-      src:"https://github.com/Genga28/Genga28.github.io/tree/main/demos/04_proctoring"
-    },
-    {
       id:"voice", c:COLORS.teal, tag:"Voice AI",
       poster:"assets/img/demos/voice.jpg",
       title:"Voice agent you can interrupt",
@@ -198,6 +189,15 @@ const DEFAULTS = {
       tech:["PaddleOCR","FastAPI"],
       flow:["Scan","Detect","Grid","Columns","Text"],
       src:"https://github.com/Genga28/Genga28.github.io/tree/main/demos/05_ocr_layout"
+    },
+    {
+      id:"proctoring", c:COLORS.blue, tag:"Computer vision",
+      poster:"assets/img/demos/proctoring.jpg",
+      title:"Gaze & presence tracker",
+      line:"Tracks eyes, head pose and extra faces from a webcam, then fuses them into one live 0–100 risk score.",
+      tech:["MediaPipe","OpenCV","Python"],
+      flow:["Webcam","Face mesh","Gaze + pose","Fusion","Score"],
+      src:"https://github.com/Genga28/Genga28.github.io/tree/main/demos/04_proctoring"
     },
     {
       id:"rpa", c:COLORS.violet, tag:"Desktop RPA",
