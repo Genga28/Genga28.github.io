@@ -131,8 +131,15 @@ class TesseractEngine:
     def __call__(self, image_path: str) -> list[Box]:
         from PIL import Image
 
+        # psm 4, "a single column of text of variable sizes", not the default
+        # psm 3. On a form with tick boxes the default finds 1 of 5 isolated
+        # X marks because it treats the page as prose blocks and discards
+        # stray glyphs; psm 4 finds all 5, and costs nothing measurable on a
+        # two-column page (271 boxes vs 272, same tables).
         data = self._pt.image_to_data(
-            Image.open(image_path), lang=self._lang, output_type=self._pt.Output.DICT
+            Image.open(image_path), lang=self._lang,
+            config=f"--psm {os.environ.get('TESSERACT_PSM') or 4}",
+            output_type=self._pt.Output.DICT,
         )
         out: list[Box] = []
         for i, text in enumerate(data["text"]):
@@ -242,13 +249,14 @@ def is_tabular(grid: list[list[str]]) -> bool:
     if median_len > 24:
         return False
 
-    # 2. Mostly-empty grids are an alignment coincidence, not a table.
-    fill = len(cells) / float(rows * cols)
-    if fill < 0.55:
-        return False
+    # 2. A header row that fills its columns. This is what separates a sparse
+    #    table from a coincidence: a checklist form is mostly empty cells by
+    #    design, but its header names every column. Testing fill ratio instead
+    #    rejects exactly the forms this tool is most useful on.
+    header_full = sum(1 for c in grid[0] if c.strip()) >= max(2, cols - 1)
 
-    # 3. A table has a consistent row shape. Rows that each hold a different
-    #    number of cells are stray text that happened to align.
+    # 3. Or a consistent row shape, which a data table has even without a
+    #    header row of its own.
     per_row = [sum(1 for c in row if c.strip()) for row in grid]
     regular = len(set(per_row)) <= 2 and min(per_row) >= 2
 
@@ -260,10 +268,10 @@ def is_tabular(grid: list[list[str]]) -> bool:
         if len(vals) >= 2 and sum(bool(_NUMERIC.match(v)) for v in vals) / len(vals) >= 0.6:
             numeric_cols += 1
 
-    if numeric_cols >= 1 and regular:
+    if numeric_cols >= 1 and (regular or header_full):
         return True                      # a data table
-    if cols >= 3 and regular and median_len <= 16:
-        return True                      # a text-only table: name / role / team
+    if cols >= 3 and header_full and median_len <= 20:
+        return True                      # a form or a text table: every column named
     return False
 
 
@@ -287,18 +295,7 @@ def preserve(boxes: list[Box], gutter: int = 3) -> str:
     cw = char_width(boxes)
     per_line = [split_cells(line, cw) for line in lines]
 
-    # Cluster every cell start into a small set of page-wide anchors.
-    anchors: list[float] = []
-    tol = cw * 2.5
-    for row in per_line:
-        for x, _ in row:
-            for i, a in enumerate(anchors):
-                if abs(a - x) <= tol:
-                    anchors[i] = (a + x) / 2
-                    break
-            else:
-                anchors.append(x)
-    anchors.sort()
+    anchors = column_anchors(per_line, cw)
 
     assigned: list[list[tuple[int, str]]] = []
     for row in per_line:
@@ -453,6 +450,47 @@ def columns(boxes: list[Box], gap_ratio: float = 2.5) -> list[tuple[float, float
     return [c for c in cols if c[1] - c[0] > cw * 4]
 
 
+def column_anchors(per_line: list[list[tuple[float, str]]], cw: float) -> list[float]:
+    """Page-wide column anchors, shared by the layout and the table extractor.
+
+    These were computed twice with different tolerances, which is why a
+    header could line up in the preserved text and not in the extracted
+    table. One model, one answer.
+
+    The merge step matters as much as the clustering: a header is usually
+    left-aligned while its column's contents are centred, so "OK" at x=448
+    and its ticks at x=479 cluster apart. Two anchors that never appear on
+    the same line are the same column wearing two alignments.
+    """
+    anchors: list[float] = []
+    tol = cw * 2.5
+    for row in per_line:
+        for x, _ in row:
+            for i, a in enumerate(anchors):
+                if abs(a - x) <= tol:
+                    anchors[i] = (a + x) / 2
+                    break
+            else:
+                anchors.append(x)
+    anchors.sort()
+
+    changed = True
+    while changed and len(anchors) > 1:
+        changed = False
+        used = [{min(range(len(anchors)), key=lambda n: abs(anchors[n] - x))
+                 for x, _ in row} for row in per_line]
+        for i in range(len(anchors) - 1):
+            if anchors[i + 1] - anchors[i] > cw * 18:
+                continue
+            if any(i in u and i + 1 in u for u in used):
+                continue
+            anchors[i] = (anchors[i] + anchors[i + 1]) / 2
+            anchors.pop(i + 1)
+            changed = True
+            break
+    return anchors
+
+
 def detect_tables(boxes: list[Box], min_rows: int = 3, min_cols: int = 2) -> list[dict]:
     """Find tabular regions and return them as real grids.
 
@@ -468,36 +506,44 @@ def detect_tables(boxes: list[Box], min_rows: int = 3, min_cols: int = 2) -> lis
         return []
 
     cw = char_width(boxes)
-    tol = cw * 3.5                     # how far a cell may drift and still count
     per_line = [split_cells(line, cw) for line in lines]
+    anchors_all = column_anchors(per_line, cw)
+    tol = cw * 3.5
 
-    def aligns(a, b) -> bool:
-        """Do two lines share at least min_cols anchors in common?"""
-        if len(a) < min_cols or len(b) < min_cols:
-            return False
-        hits = sum(1 for xa, _ in a if any(abs(xa - xb) <= tol for xb, _ in b))
-        return hits >= min_cols and hits >= min(len(a), len(b)) - 1
+    def cols_of(row):
+        """Which page columns this line actually occupies."""
+        return {min(range(len(anchors_all)), key=lambda n: abs(anchors_all[n] - x))
+                for x, _ in row}
 
+    occupied = [cols_of(row) for row in per_line]
+
+    # Grow a run against the block's accumulated columns, not just against the
+    # previous line. Comparing pairs breaks any sparse table: in a checklist
+    # one row ticks "OK" and the next ticks "Damage", so consecutive rows
+    # share only the label column and the run ends after two.
     tables, i = [], 0
     while i < len(per_line):
+        if len(occupied[i]) < min_cols:
+            i += 1
+            continue
+
+        seen = set(occupied[i])
         j = i
-        while j + 1 < len(per_line) and aligns(per_line[j], per_line[j + 1]):
+        while j + 1 < len(per_line):
+            nxt = occupied[j + 1]
+            if len(nxt) < min_cols or not (nxt & seen):
+                break
+            # Every cell must land on a column the block already uses, give or
+            # take one, otherwise this is new content rather than another row.
+            if len(nxt - seen) > 1:
+                break
+            seen |= nxt
             j += 1
 
         if j - i + 1 >= min_rows:
             block = per_line[i:j + 1]
-
-            # Column anchors: cluster every cell x across the block.
-            anchors: list[float] = []
-            for row in block:
-                for x, _ in row:
-                    for k, a in enumerate(anchors):
-                        if abs(a - x) <= tol:
-                            anchors[k] = (a + x) / 2       # drift toward the mean
-                            break
-                    else:
-                        anchors.append(x)
-            anchors.sort()
+            used = sorted(seen)
+            anchors = [anchors_all[k] for k in used]
 
             grid = []
             for row in block:
@@ -510,6 +556,25 @@ def detect_tables(boxes: list[Box], min_rows: int = 3, min_cols: int = 2) -> lis
             # Drop columns that ended up empty everywhere.
             keep = [k for k in range(len(anchors)) if any(r[k] for r in grid)]
             grid = [[r[k] for k in keep] for r in grid]
+
+            # Trim edge rows that do not share the block's shape. A caption
+            # above a table, or a footnote below it, often aligns well enough
+            # to get swept into the run; it is recognisable because it holds
+            # far fewer cells than the body does.
+            def filled(r):
+                return sum(1 for c in r if c.strip())
+
+            if grid:
+                counts = [filled(r) for r in grid]
+                modal = max(set(counts), key=counts.count)
+                while len(grid) > 2 and filled(grid[0]) < modal - 1:
+                    grid.pop(0)
+                while len(grid) > 2 and filled(grid[-1]) < modal - 1:
+                    grid.pop()
+                # Re-drop any column the trim just emptied.
+                if grid:
+                    keep = [k for k in range(len(grid[0])) if any(r[k] for r in grid)]
+                    grid = [[r[k] for k in keep] for r in grid]
 
             if grid and len(grid[0]) >= min_cols and is_tabular(grid):
                 flat = [b for line in lines[i:j + 1] for b in line]
@@ -591,7 +656,19 @@ def detect_figures(image_path: str, boxes: list[Box], tables: list[dict] | None 
             continue
         if ink_px < 400:                     # speckle and scanner dust
             continue
-        if w > W * 0.97 and h < 40:          # a full-width rule, not a figure
+
+        # Extreme aspect means a rule, a border or a margin stripe. A real
+        # figure is roughly page-shaped; a 93x2339 sliver down the edge of
+        # an A4 page is furniture, however much ink it carries.
+        aspect = max(w, h) / float(max(min(w, h), 1))
+        if aspect > 8:
+            continue
+
+        # A tall thin band running most of the page height is a sidebar rule
+        # even when it stays under that ratio.
+        if h > H * 0.80 and w < W * 0.14:
+            continue
+        if w > W * 0.80 and h < H * 0.035:   # the same thing lying down
             continue
 
         # Axis labels and captions sit just outside the plotted area, so look
