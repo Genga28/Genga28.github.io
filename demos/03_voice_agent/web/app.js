@@ -552,6 +552,27 @@ function growCaption(el, text) {
   el.classList.add("on");
 }
 
+/* Reveal the new words of a caption evenly across `dur` seconds, which is how
+   long the sentence takes to say. Words already on screen stay put. A newer
+   caption arriving mid-reveal flushes the old timer first, so nothing is
+   ever shown twice or out of order. */
+function revealCaption(el, text, dur) {
+  clearInterval(el._timer);
+  const words = text.split(/\s+/).filter(Boolean);
+  const have = (el._words || []).length;
+  const fresh = words.slice(have);
+  if (!fresh.length || !dur) { growCaption(el, text); return; }
+  const step = Math.max(40, Math.min(320, (dur * 1000 * 0.9) / fresh.length));
+  let n = 0;
+  el._timer = setInterval(() => {
+    n++;
+    growCaption(el, words.slice(0, have + n).join(" "));
+    if (n >= fresh.length) clearInterval(el._timer);
+  }, step);
+  growCaption(el, words.slice(0, have + 1).join(" "));
+  n = 1;
+}
+
 function badges(info) {
   els.badges.innerHTML = [
     // whatever is actually answering, rather than a guess from the provider
@@ -625,18 +646,27 @@ async function join() {
   ws.onmessage = (ev) => {
     const m = JSON.parse(ev.data);
     if (m.type === "ready") badges(m);
-    if (m.type === "state") setState(m.state, m.note);
+    if (m.type === "state") {
+      setState(m.state, m.note);
+      // a new turn clears the previous reply instead of appending to it
+      if (m.state === "thinking") { clearInterval(els.capAgent._timer); growCaption(els.capAgent, ""); }
+    }
+    if (m.type === "end") {
+      // Aria has said goodbye: hang up, and leave the join button ready.
+      setTimeout(() => { leave(); els.join.textContent = "Talk again"; }, 500);
+    }
     if (m.type === "caption") {
       if (m.who === "user") {
         els.capUser.classList.toggle("live", !m.final);
         growCaption(els.capUser, m.text);
       } else if (m.final) {
-        // the settled line, with the staggered reveal
+        // the greeting arrives as one finished line; replies never do, they
+        // have already been revealed sentence by sentence
+        clearInterval(els.capAgent._timer);
         showCaption(els.capAgent, m.text, true);
       } else {
-        // mid-stream: grow it, so her words appear as she writes them
-        // rather than a sentence at a time
-        growCaption(els.capAgent, m.text);
+        // paced to the audio, so the words appear as she says them
+        revealCaption(els.capAgent, m.text, m.dur);
       }
     }
   };

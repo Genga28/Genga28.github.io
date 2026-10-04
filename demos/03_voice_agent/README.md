@@ -95,6 +95,60 @@ indicator on a call you think you have left. The server needs no message:
 the closed peer fires `connectionstatechange` and the session is dropped
 there. Rejoining starts a fresh conversation.
 
+## Cloud speech
+
+Hearing is tried in this order, and each step falls back to the next on its own:
+
+1. **Cartesia Ink-Whisper** (streaming, `CARTESIA_API_KEY`). One final transcript
+   per utterance, about a second after you stop.
+2. **Deepgram nova-3** (streaming, `DEEPGRAM_API_KEY`). Also gives live interim
+   words. Choose it with `ARIA_STT=deepgram`.
+3. **Gemini audio** (`GOOGLE_API_KEY`). Transcribes each utterance and answers
+   `NO_SPEECH` for noise, which a Whisper decoder cannot.
+4. **Local faster-whisper**. Always loaded: it also draws the live caption while
+   a cloud recogniser, which has no interim results, is working.
+
+Speaking is **Cartesia Sonic** over one kept-open WebSocket, with a per-word
+timestamp for every word, so each caption word is printed as it is spoken. If it
+fails, the local Piper voice speaks instead. `ARIA_STT=local` forces step 4.
+
+Where an utterance starts and ends is decided locally by **Silero VAD**, not
+webrtcvad. webrtcvad reads steady room noise as speech, so the utterance never
+ends, the live caption decodes noise forever and the agent never answers.
+
+## How a call ends
+
+There is no hard cut-off. From `ARIA_SOFT_TURNS` exchanges (default 8) Aria is told
+to wind down: she answers what you just said first, then closes with thanks and a
+goodbye only when it feels natural, and the room hangs up once she has said it. If
+you are mid-thought she carries on and mentions she should let you go soon.
+`ARIA_HARD_TURNS` (default 10) is the hard hang-up. A short sign-off from you ("okay,
+thanks, bye") ends it at any point. One-word fragments do not count as exchanges.
+
+Aria marks the end of a call with a token (`[END]`) that is stripped before
+anything is spoken or shown, so the hang-up always follows her actual goodbye.
+
+## Why it no longer answers half a sentence
+
+A turn starts only after `HOLD` seconds of quiet (default 0.6, on top of the VAD's
+own tail), and pieces heard inside that window are joined into one turn. If you
+carry on while she is still thinking, her answer is dropped and your words are
+merged into a single new turn. Raise `HOLD` for slower speakers.
+
+## Hearing and speaking: Cartesia
+
+Both directions are Cartesia. **Ink-2** is its streaming speech-to-text model: it sends
+the words as they are spoken, so the live caption is real, not a local guess.
+**Sonic 3** is the voice, with a timestamp for every word. Ink-2 never announces the
+end of an utterance, so the local Silero VAD decides when you have stopped, and the
+server then asks Ink-2 to flush the trailing words (`flush()` in `cloud.py`). A turn
+that trails off ("It's uh") is held for a moment so the rest of the thought joins it.
+
+Settings: `CARTESIA_STT_MODEL` (`ink-2` default, or `ink-whisper`, which answers once
+per utterance with no live words), `CARTESIA_MODEL` for the voice. Gemini and Whisper
+transcription are only used with `ARIA_STT=gemini` / `local` or if Cartesia is rejected.
+`ARIA_DEBUG=1` prints the decision to start each turn.
+
 ## Keeping it responsive
 
 Perceived lag in a voice agent is almost entirely the gap between the user

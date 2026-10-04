@@ -10,7 +10,7 @@
 <style>
 :root{
   --bg:#06080D; --bg-2:#0B1018; --surface:#121927; --line:#1F2A3A;
-  --txt:#EEF3FA; --txt-2:#97A5B8; --txt-3:#63718400;
+  --txt:#EEF3FA; --txt-2:#97A5B8; --txt-3:#637184;
   --blue:#7AB8FF; --violet:#B49BF5; --teal:#5FD9C4; --amber:#F5BE8B; --pink:#F49BB8; --green:#8FE39A;
   --ease:cubic-bezier(.16,1,.3,1);
   --fd:"Archivo",system-ui,sans-serif; --fb:"IBM Plex Sans",system-ui,sans-serif;
@@ -134,7 +134,7 @@ body.speaking  .statepill .dot{ background:var(--teal); box-shadow:0 0 14px var(
 .cap.agent{ font-family:var(--fd); font-weight:600; font-size:clamp(20px,3.1vw,34px); line-height:1.24; letter-spacing:-.025em; }
 .cap.agent .w{ display:inline-block; opacity:0; transform:translateY(8px); animation:wordin .45s var(--ease) forwards; }
 @keyframes wordin{ to{ opacity:1; transform:none; } }
-.cap.user{ font-size:15.5px; color:var(--txt-2); }
+.cap.user{ font-size:clamp(17px,2vw,22px); line-height:1.35; color:var(--txt); min-height:1.4em; }
 .cap.user::before{ content:"you  "; color:var(--blue); font-weight:600; }
 /* A partial is a re-decode of a half-spoken sentence and its last words will
    change. Showing it in the same weight as a settled line makes the UI look
@@ -143,9 +143,9 @@ body.speaking  .statepill .dot{ background:var(--teal); box-shadow:0 0 14px var(
    set the start state in CSS. With no `from` these spans would animate from
    their computed style, which is already the finished one, and nothing would
    appear to happen. */
-.cap.user .nw{ display:inline; animation:newword .24s var(--ease) both; }
+.cap .nw{ display:inline; animation:newword .24s var(--ease) both; }
 @keyframes newword{ from{ opacity:0; filter:blur(2px); } to{ opacity:1; filter:none; } }
-.cap.user.live{ color:var(--txt-3); font-style:italic; }
+.cap.user.live{ color:var(--txt-2); font-style:italic; opacity:.85; }
 .cap.user.live::after{
   content:""; display:inline-block; width:2px; height:1em; margin-left:5px;
   vertical-align:-2px; background:var(--blue); animation:caret 1s steps(2) infinite;

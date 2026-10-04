@@ -14,6 +14,7 @@ a scripted host that can still hold a short conversation.
 
 from __future__ import annotations
 
+import collections
 import json
 import logging
 import os
@@ -25,6 +26,7 @@ import tempfile
 import threading
 import time
 import wave
+import zlib
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -45,11 +47,47 @@ VOICES = HERE / "voices"
 SAMPLE_RATE = 16_000          # what Whisper and webrtcvad both want
 FRAME_MS = 20
 FRAME_SAMPLES = SAMPLE_RATE * FRAME_MS // 1000
+PRE_ROLL_FRAMES = 15           # 300 ms kept from before speech opens
 
 
 # ==========================================================================
 # VAD
 # ==========================================================================
+class Silero:
+    """Streaming speech probability from the Silero VAD that ships inside
+    faster-whisper. It takes 512-sample windows and carries state between them,
+    so 20 ms frames are accumulated until a window is full.
+
+    webrtcvad is a 2013 energy-and-spectrum heuristic: ordinary room noise,
+    a fan, or a laptop mic with automatic gain turned up all read as speech,
+    which means an utterance never ends, the live caption decodes noise
+    forever, and the agent never answers. Silero is a trained model and tells
+    speech from noise.
+    """
+
+    WINDOW = 512
+
+    def __init__(self) -> None:
+        from faster_whisper.vad import get_vad_model
+        self._model = get_vad_model()
+        self.reset()
+
+    def reset(self) -> None:
+        self._state, self._ctx = self._model.get_initial_states(1)
+        self._carry = np.zeros(0, dtype=np.float32)
+        self.p = 0.0
+
+    def __call__(self, frame_i16: np.ndarray) -> float:
+        self._carry = np.concatenate(
+            [self._carry, frame_i16.astype(np.float32) / 32768.0])
+        while len(self._carry) >= self.WINDOW:
+            window, self._carry = self._carry[:self.WINDOW], self._carry[self.WINDOW:]
+            out, self._state, self._ctx = self._model(
+                window[None, :], self._state, self._ctx, SAMPLE_RATE)
+            self.p = float(np.ravel(out)[0])
+        return self.p
+
+
 class Segmenter:
     """Turns a stream of 20 ms frames into complete utterances.
 
@@ -70,7 +108,7 @@ class Segmenter:
         # VADs disagreeing that completely is the tell.
         aggressiveness: int = 2,
         start_frames: int = 5,       # 100 ms of speech to open
-        end_frames: int = 19,        # 380 ms of silence to close. Every ms
+        end_frames: int = 16,        # 320 ms of silence to close. Every ms
                                      # here is dead air at the end of every
                                      # single thing the user says, and it is
                                      # the largest single piece of the gap
@@ -79,6 +117,11 @@ class Segmenter:
         # conversation while small.en chewed through it.
         max_ms: int = 12_000,
     ) -> None:
+        self._silero: Silero | None = None
+        try:
+            self._silero = Silero()
+        except Exception as exc:
+            log.warning("silero vad unavailable (%s), falling back to webrtcvad", exc)
         try:
             import webrtcvad
             self._vad = webrtcvad.Vad(aggressiveness)
@@ -91,11 +134,23 @@ class Segmenter:
         self.max_frames = max_ms // FRAME_MS
 
         self._buf: list[np.ndarray] = []
+        # Rolling 300 ms of everything heard before speech opens. The VAD only
+        # confirms speech a hundred milliseconds in, and without this the
+        # first syllable of every sentence is thrown away: "working on" comes
+        # out as "orking on", which is most of what read as bad recognition.
+        self._pre: collections.deque[np.ndarray] = collections.deque(maxlen=PRE_ROLL_FRAMES)
         self._voiced = 0
         self._silent = 0
         self._active = False
+        self._speech = 0               # voiced frames in the open utterance
+
+    # Hysteresis. A higher bar to open than to stay open: opening on a cough
+    # is a false turn, but dropping out between two words is a cut-off one.
+    OPEN_P, STAY_P = 0.55, 0.30
 
     def _is_speech(self, frame: np.ndarray) -> bool:
+        if self._silero is not None:
+            return self._silero(frame) >= (self.STAY_P if self._active else self.OPEN_P)
         if self._vad is not None:
             try:
                 return self._vad.is_speech(frame.tobytes(), SAMPLE_RATE)
@@ -107,13 +162,23 @@ class Segmenter:
     def active(self) -> bool:
         return self._active
 
+    @property
+    def speech_ratio(self) -> float:
+        """Share of the open utterance the VAD called speech.
+
+        A buffer that is mostly "not speech" is room noise the VAD flickered
+        on. Whisper will still write something for it, and what it writes for
+        noise is a repeated phrase or a run of dots.
+        """
+        return self._speech / len(self._buf) if self._buf else 0.0
+
     def partial(self) -> np.ndarray | None:
         """What has been heard so far in the utterance still being spoken.
 
         Returned as a copy: the caller hands it to a worker thread while this
         one keeps appending frames to the live buffer.
         """
-        if not self._active or not self._buf:
+        if not self._active or not self._buf or self.speech_ratio < 0.3:
             return None
         return np.concatenate(self._buf).copy()
 
@@ -122,28 +187,36 @@ class Segmenter:
         speech = self._is_speech(frame_i16)
 
         if not self._active:
+            self._pre.append(frame_i16)
             if speech:
                 self._voiced += 1
-                self._buf.append(frame_i16)
                 if self._voiced >= self.start_frames:
+                    self._buf = list(self._pre)
+                    self._speech = self._voiced
+                    self._pre.clear()
                     self._active, self._silent = True, 0
             else:
                 self._voiced = 0
-                self._buf.clear()
             return None
 
         self._buf.append(frame_i16)
         self._silent = 0 if speech else self._silent + 1
+        self._speech += speech
 
         if self._silent >= self.end_frames or len(self._buf) >= self.max_frames:
             audio = np.concatenate(self._buf) if self._buf else np.zeros(0, np.int16)
+            noise = self.speech_ratio < 0.2
+            self._speech = 0
             self._buf, self._voiced, self._silent, self._active = [], 0, 0, False
+            self._pre.clear()
             # Anything under 300 ms is a cough, a door, or a keyboard.
-            return audio if len(audio) > SAMPLE_RATE * 0.3 else None
+            return audio if len(audio) > SAMPLE_RATE * 0.3 and not noise else None
         return None
 
     def reset(self) -> None:
         self._buf, self._voiced, self._silent, self._active = [], 0, 0, False
+        self._speech = 0
+        self._pre.clear()
 
 
 # ==========================================================================
@@ -161,12 +234,37 @@ class Segmenter:
 # word-perfect at about 0.26x real time.
 DECODE = dict(
     language="en",
-    beam_size=1,                   # greedy: this is a live conversation
+    beam_size=5,                   # the final decode is the one that is kept
     condition_on_previous_text=False,
     vad_filter=True,               # Silero, inside faster-whisper
+    # The default Silero settings clip soft word onsets and cut at the first
+    # breath. A wide pad and a patient silence keep the whole sentence.
+    vad_parameters=dict(threshold=0.35, min_silence_duration_ms=600,
+                        speech_pad_ms=400),
     no_speech_threshold=0.6,
     log_prob_threshold=-1.0,
-    compression_ratio_threshold=2.0,
+    compression_ratio_threshold=2.4,
+    # Vocabulary this conversation actually uses. Whisper spells what it was
+    # primed with: without it "agentic" is "a gentic" or "agenda", and "Aria"
+    # is "area".
+    initial_prompt="Aria. Agentic AI, voice agents, LLM, RAG, Python, portfolio.",
+)
+
+# The live caption is throwaway text that the final decode replaces, so it is
+# decoded greedily and with every confidence cut-off removed. Those cut-offs
+# exist to stop invented words reaching the model; a caption never reaches
+# the model, and applying them to a tiny.en decode of a half-finished
+# sentence dropped nearly every partial, so nothing showed until the end.
+PARTIAL_DECODE = dict(
+    language="en",
+    beam_size=1,
+    condition_on_previous_text=False,
+    temperature=0.0,               # no retry ladder, so no latency spikes
+    initial_prompt="Aria. Agentic AI, voice agents, LLM, RAG, Python, portfolio.",
+    vad_filter=False,              # the segmenter already decided this is speech
+    no_speech_threshold=None,
+    log_prob_threshold=None,
+    compression_ratio_threshold=None,
 )
 
 # Whisper's favourite things to invent out of nothing. This list only
@@ -186,15 +284,51 @@ TARGET_RMS = 0.06      # a normal speaking level once normalised
 MAX_GAIN = 12.0        # enough for a quiet mic, not enough to turn hiss into words
 
 
-class Transcriber:
-    """faster-whisper. int8 on CPU runs base.en at about 0.26x real time."""
+# What Whisper writes for audio with nothing in it. Each of these was seen in
+# a live log with nobody speaking.
+HALLUCINATIONS = {
+    "music", "applause", "laughter", "silence", "thank you", "thanks for watching",
+    "i'm going to go to the next one", "so, let's go", "so let's go",
+    "i'm going to be right back", "you",
+}
 
-    def __init__(self, model: str = "base.en", device: str = "cpu") -> None:
+
+def degenerate(text: str) -> bool:
+    """True for what Whisper writes when there is nothing to transcribe:
+    punctuation only, or one phrase looped. Real speech repeats a word, not
+    a whole sentence nine times over."""
+    if not re.search(r"[A-Za-z]{2}", text):
+        return True
+    # The vocabulary prompt handed to Whisper, written back out as a
+    # transcript. It happens on audio with little in it, and it has to be
+    # dropped, not answered.
+    prompt_words = {"aria", "agentic", "ai", "voice", "agents", "agent", "llm",
+                    "rag", "python", "portfolio"}
+    toks = re.findall(r"[a-z']+", text.lower())
+    if len(toks) >= 3 and all(t in prompt_words for t in toks):
+        return True
+    if re.sub(r"[^a-z' ,]", "", text.lower()).strip(" ,") in HALLUCINATIONS:
+        return True
+    if re.fullmatch(r"[\[\(].*[\]\)]", text.strip()):     # "[Music]", "(applause)"
+        return True
+    words = text.lower().split()
+    if len(words) >= 12 and len(set(words)) <= len(words) * 0.35:
+        return True
+    return len(text) > 40 and len(zlib.compress(text.encode())) < len(text) / 2.6
+
+
+class Transcriber:
+    """faster-whisper, int8 on CPU. small.en runs at about 0.3x real time with 8
+    threads, which is the price of reading a real accent properly."""
+
+    def __init__(self, model: str = "base.en", device: str = "cpu",
+                 threads: int = 0) -> None:
         from faster_whisper import WhisperModel
 
         compute = "int8" if device == "cpu" else "float16"
         log.info("loading whisper %s (%s/%s)", model, device, compute)
-        self._model = WhisperModel(model, device=device, compute_type=compute)
+        self._model = WhisperModel(model, device=device, compute_type=compute,
+                                   cpu_threads=threads)
 
     def __call__(self, audio_i16: np.ndarray, partial: bool = False) -> str:
         audio = audio_i16.astype(np.float32) / 32768.0
@@ -218,6 +352,18 @@ class Transcriber:
         audio = audio * min(TARGET_RMS / max(rms, 1e-6), MAX_GAIN)
         np.clip(audio, -1.0, 1.0, out=audio)
 
+        if partial:
+            segments, _ = self._model.transcribe(audio, **PARTIAL_DECODE)
+            text = " ".join(x.text.strip() for x in segments).strip()
+            text = re.sub(r"[\s/\|_~^<>*=+-]+$", "", text).strip()
+            return "" if degenerate(text) else text
+
+        # Half a second of silence either side. Whisper was trained on clips
+        # with room around the speech and is measurably worse on ones that
+        # start or stop dead on a word.
+        pad = np.zeros(int(SAMPLE_RATE * 0.5), dtype=np.float32)
+        audio = np.concatenate([pad, audio, pad])
+
         segments, _ = self._model.transcribe(audio, **DECODE)
         segments = list(segments)
         if not segments:
@@ -228,7 +374,7 @@ class Transcriber:
         # dashes. It is not a word, it reaches the model as one, and it ends
         # up read aloud in the caption.
         text = re.sub(r"[\s/\|_~^<>*=+-]+$", "", text).strip()
-        if not text:
+        if not text or degenerate(text):
             return ""
 
         # A poor mean log probability on a very short result is the signature
@@ -492,6 +638,33 @@ answer in a sentence and hand it back.
 
 If you did not catch something, just say so and ask them to say it again."""
 
+# Appended to the system prompt on the turn that ends the call.
+# The call ends when Aria says so, by putting END_TOKEN at the end of a reply.
+# The token is stripped before anything is spoken or shown.
+END_TOKEN = "[END]"
+WRAP = {
+    "soft": (
+        "THE CALL HAS RUN ITS NATURAL LENGTH. First respond properly to what "
+        "they just said or asked, in one or two short sentences, as you "
+        "normally would. If this feels like a natural place to finish, close "
+        "warmly: thank them, say it was good talking, say goodbye, and put the "
+        f"exact token {END_TOKEN} at the very end of your reply. If they are "
+        "clearly mid-thought, or closing now would feel abrupt, do not close "
+        "yet: answer them, and mention that you should let them go soon. Never "
+        f"ask a new question in a reply that ends with {END_TOKEN}."
+    ),
+    "hard": (
+        "THIS MUST BE THE LAST EXCHANGE. React briefly to what they said, then "
+        "thank them, say it was good talking, say goodbye, and put the exact "
+        f"token {END_TOKEN} at the very end. Do not ask a question."
+    ),
+    "goodbye": (
+        "THEY ARE SAYING GOODBYE. Reply with one short warm sentence: you "
+        f"enjoyed it, thanks, bye. Put the exact token {END_TOKEN} at the very "
+        "end. Do not ask a question."
+    ),
+}
+
 SCRIPT = [
     "Hey, I'm Aria. How's your day going?",
     "Oh nice. What have you been working on?",
@@ -545,7 +718,7 @@ class Brain:
 
     PROVIDER = (os.environ.get("ARIA_PROVIDER") or "").strip().lower()
     CLAUDE_MODEL = os.environ.get("ARIA_MODEL") or "claude-haiku-4-5-20251001"
-    GEMINI_MODEL = os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash"
+    GEMINI_MODEL = os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash-lite"
     EFFORT = os.environ.get("ARIA_EFFORT") or "low"
 
     def __init__(self, context: "Context | None" = None) -> None:
@@ -608,28 +781,42 @@ class Brain:
         return " ".join(t for k, t in self.reply(opener, greeting=True) if k == "say")
 
     # ---------------- the stream ----------------
-    def reply(self, user_text: str, greeting: bool = False) -> Iterator[tuple[str, str]]:
+    def reply(self, user_text: str, greeting: bool = False,
+              wrap: str | None = None) -> Iterator[tuple[str, str]]:
         if not greeting:
             self.history.append({"role": "user", "content": user_text})
 
         if self._client is None:
             self._turn += 1
-            text = SCRIPT[min(self._turn, len(SCRIPT) - 1)]
+            text = SCRIPT[-1 if wrap else min(self._turn, len(SCRIPT) - 1)]
             self.history.append({"role": "assistant", "content": text})
             yield ("text", text)
             yield ("say", text)
+            if wrap:
+                yield ("end", "")
             return
 
-        messages = self.history or [{"role": "user", "content": user_text}]
+        messages = list(self.history or [{"role": "user", "content": user_text}])
         system = f"{SYSTEM}\n\n{self.context.line()}"
+        if wrap in WRAP:
+            # In the system prompt it was being ignored: Aria asked another
+            # question and the call hung up on her. On the message she is
+            # answering, it is part of what she is replying to.
+            system += f"\n\n{WRAP[wrap]}"
+            last = messages[-1]
+            messages[-1] = {**last, "content": f"{last['content']}\n\n[{WRAP[wrap]}]"}
         pieces = (self._claude(system, messages) if self.provider == "claude"
                   else self._gemini(system, messages))
 
-        buffer, said, full = "", "", []
+        buffer, said, full, ended = "", "", [], False
         try:
             for piece in pieces:
                 buffer += piece
                 said += piece
+                if END_TOKEN in buffer:
+                    ended = True
+                    buffer = buffer.replace(END_TOKEN, "")
+                    said = said.replace(END_TOKEN, "")
                 yield ("text", speakable(said))
                 parts = _SENTENCE.split(buffer)
                 while len(parts) > 1:
@@ -639,10 +826,14 @@ class Brain:
                         yield ("say", sentence)
                     buffer = " ".join(parts)
                     parts = _SENTENCE.split(buffer)
+            # A token cut off mid-way by max_tokens must not be read aloud.
+            buffer = re.sub(r"\[[A-Z]{0,3}$", "", buffer)
             tail = speakable(buffer)
             if tail:
                 full.append(tail)
                 yield ("say", tail)
+            if ended:
+                yield ("end", "")
         except Exception as exc:
             log.error("%s call failed: %s", self.provider, exc)
             lost = "Sorry, I lost my train of thought there. What were you saying?"
