@@ -74,7 +74,7 @@ button{ font:inherit; color:inherit; background:none; border:0; cursor:pointer; 
 }
 
 .wrap{ width:100%; max-width:var(--maxw); margin-inline:auto; padding-inline:var(--gut); }
-.sec{ padding-block:clamp(64px,8vw,112px); position:relative; scroll-margin-top:60px; }
+.sec{ padding-block:clamp(44px,5.5vw,76px); position:relative; scroll-margin-top:60px; }
 .sec + .sec{ border-top:1px solid var(--line-soft); }
 
 .sec-head{ display:flex; flex-direction:column; gap:12px; margin-bottom:clamp(30px,4vw,48px); max-width:60ch; }
@@ -111,7 +111,7 @@ button{ font:inherit; color:inherit; background:none; border:0; cursor:pointer; 
 }
 .nav.stuck .nav-inner{ padding-block:15px; }
 
-.brand{ display:flex; align-items:center; gap:13px; font-family:var(--fd); font-weight:800; letter-spacing:-.035em; font-size:20.5px; }
+.brand{ display:flex; align-items:center; gap:13px; font-family:var(--fd); font-weight:800; letter-spacing:-.035em; font-size:23px; }
 .brand-mark{
   width:36px; height:36px; border-radius:12px; flex:none; position:relative; overflow:hidden;
   background:linear-gradient(140deg,var(--blue),var(--violet) 46%,var(--pink));
@@ -119,10 +119,10 @@ button{ font:inherit; color:inherit; background:none; border:0; cursor:pointer; 
   font-size:12.5px; font-weight:800; color:#0A0D12; letter-spacing:-.02em;
   box-shadow:0 8px 28px -10px rgba(122,184,255,.7);
 }
-.brand small{ display:block; font-family:var(--fb); font-weight:400; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--txt-3); margin-top:-4px; }
+.brand small{ display:block; font-family:var(--fb); font-weight:400; font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--txt-3); margin-top:-4px; }
 
 .nav-links{ display:flex; align-items:center; gap:2px; padding:5px; border:1px solid var(--line-soft); border-radius:100px; background:rgba(19,25,36,.6); }
-.nav-links a{ position:relative; font-size:14.5px; color:var(--txt-2); padding:9px 17px; border-radius:100px; transition:color .35s var(--ease); }
+.nav-links a{ position:relative; font-size:16.5px; color:var(--txt-2); padding:9px 17px; border-radius:100px; transition:color .35s var(--ease); }
 .nav-links a:hover{ color:var(--txt); }
 .nav-links a.active{ color:var(--txt); }
 .nav-links a.active::before{
@@ -173,8 +173,8 @@ button{ font:inherit; color:inherit; background:none; border:0; cursor:pointer; 
 .rail{ position:fixed; left:24px; top:50%; transform:translateY(-50%); z-index:40; display:none; flex-direction:column; gap:3px; }
 .rail a{ display:flex; align-items:center; gap:13px; padding:7px 10px 7px 6px; border-radius:100px; transition:background .4s var(--ease); }
 .rail a:hover{ background:var(--surface); }
-.rail .dot{ width:9px; height:9px; border-radius:50%; background:var(--txt-4); flex:none; transition:transform .5s var(--ease), background .5s var(--ease), box-shadow .5s var(--ease); }
-.rail .lbl{ font-size:12px; font-weight:500; letter-spacing:.04em; color:var(--txt-4); transition:color .4s var(--ease); white-space:nowrap; }
+.rail .dot{ width:10px; height:10px; border-radius:50%; background:var(--txt-4); flex:none; transition:transform .5s var(--ease), background .5s var(--ease), box-shadow .5s var(--ease); }
+.rail .lbl{ font-size:14.5px; font-weight:500; letter-spacing:.04em; color:var(--txt-4); transition:color .4s var(--ease); white-space:nowrap; }
 .rail a:hover .lbl{ color:var(--txt-2); }
 .rail a.active .dot{ background:var(--c); transform:scale(1.5); box-shadow:0 0 18px var(--c); }
 .rail a.active .lbl{ color:var(--c); font-weight:600; }
@@ -203,7 +203,7 @@ button{ font:inherit; color:inherit; background:none; border:0; cursor:pointer; 
 /* ============================================================
    HERO
    ============================================================ */
-.hero{ position:relative; padding-top:clamp(140px,16vw,196px); padding-bottom:clamp(60px,7vw,96px); overflow:hidden; }
+.hero{ position:relative; padding-top:clamp(140px,16vw,196px); padding-bottom:clamp(20px,2.5vw,36px); overflow:hidden; }
 #signal{ position:absolute; inset:0; width:100%; height:100%; z-index:0; filter:blur(1.4px); opacity:.6; }
 .hero-glow{ position:absolute; z-index:0; pointer-events:none; width:min(1200px,135vw); aspect-ratio:1; left:52%; top:-34%; transform:translateX(-50%); background:radial-gradient(circle, rgba(122,184,255,.13) 0%, rgba(180,155,245,.06) 40%, transparent 65%); }
 .hero-inner{ position:relative; z-index:2; }
@@ -272,7 +272,7 @@ h1.display em{
 .cta-row{ display:flex; gap:12px; flex-wrap:wrap; opacity:0; animation:fadeUp .95s var(--ease) .56s forwards; }
 
 .telemetry{
-  margin-top:clamp(54px,6vw,88px); border:1px solid var(--line-soft); border-radius:var(--r-lg);
+  margin-top:clamp(40px,4.5vw,64px); border:1px solid var(--line-soft); border-radius:var(--r-lg);
   background:var(--bg-2); display:grid; grid-template-columns:repeat(4,1fr);
   overflow:hidden; opacity:0; animation:fadeUp 1s var(--ease) .7s forwards;
 }
@@ -714,3 +714,6 @@ h2.big em{ font-style:normal; background:linear-gradient(100deg,var(--green),var
 .proj-feature .gauge-num{ font-size:clamp(48px,6.5vw,72px); }
 .proj-feature .meter{ height:10px; }
 .pf-head{ padding:clamp(20px,2.4vw,28px) clamp(22px,2.6vw,34px) 0; }
+
+/* header button keeps the larger nav size */
+.nav-right .btn{ font-size:15px; }
