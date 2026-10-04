@@ -198,8 +198,140 @@ def char_width(boxes: list[Box]) -> float:
     return max(statistics.median(widths), 1.0)
 
 
-def preserve(boxes: list[Box], max_cols: int = 220) -> str:
-    """Boxes -> monospace text with the page geometry intact."""
+# ==========================================================================
+# table extraction
+# ==========================================================================
+def split_cells(line: list[Box], cw: float, gap: float = 2.2) -> list[tuple[float, str]]:
+    """Split one line into cells wherever the horizontal gap gets wide.
+
+    Words inside a cell sit about one space apart. A column gutter is several
+    characters wide, so `gap` character-advances is a reliable separator and
+    scales with the page's own type size.
+    """
+    if not line:
+        return []
+    cells, start, parts = [], line[0].x0, [line[0].text]
+    for prev, box in zip(line, line[1:]):
+        if (box.x0 - prev.x1) > cw * gap:
+            cells.append((start, " ".join(parts)))
+            start, parts = box.x0, [box.text]
+        else:
+            parts.append(box.text)
+    cells.append((start, " ".join(parts)))
+    return cells
+
+
+_NUMERIC = re.compile(r"^[\s$£€₹]*[-+]?[\d,]+(?:\.\d+)?\s*%?$")
+
+
+def is_tabular(grid: list[list[str]]) -> bool:
+    """Separate a real table from two columns of prose.
+
+    Both align on the same anchors, so geometry alone cannot tell them apart.
+    What does: table cells are short, and tables usually carry a numeric
+    column. A two-column article has long cells and no numbers, so requiring
+    either short cells or a numeric column rejects it without rejecting a
+    text-only table like name / role / team.
+    """
+    cells = [c for row in grid for c in row if c.strip()]
+    if not cells:
+        return False
+
+    # A column counts as numeric if most of its filled cells parse as numbers.
+    cols = len(grid[0])
+    numeric_cols = 0
+    for k in range(cols):
+        vals = [row[k].strip() for row in grid if k < len(row) and row[k].strip()]
+        if len(vals) >= 2 and sum(bool(_NUMERIC.match(v)) for v in vals) / len(vals) >= 0.6:
+            numeric_cols += 1
+
+    median_len = statistics.median(len(c) for c in cells)
+    return numeric_cols >= 1 or median_len <= 18
+
+
+def preserve(boxes: list[Box], gutter: int = 3) -> str:
+    """Boxes -> monospace text with the page's column structure intact.
+
+    The obvious approach, dividing every x by one character advance, keeps
+    the geometry but wastes the page: a 378px gutter becomes 37 blank
+    characters and the result is 160 columns wide and unreadable.
+
+    So this snaps instead. Every cell on the page is assigned to a shared
+    column anchor, each anchor is given only as much width as its widest
+    cell needs, and anchors are separated by a fixed gutter. Columns still
+    line up down the page, because two cells at the same anchor always land
+    in the same output column, but dead space is gone.
+    """
+    lines = cluster_lines(boxes)
+    if not lines:
+        return ""
+
+    cw = char_width(boxes)
+    per_line = [split_cells(line, cw) for line in lines]
+
+    # Cluster every cell start into a small set of page-wide anchors.
+    anchors: list[float] = []
+    tol = cw * 2.5
+    for row in per_line:
+        for x, _ in row:
+            for i, a in enumerate(anchors):
+                if abs(a - x) <= tol:
+                    anchors[i] = (a + x) / 2
+                    break
+            else:
+                anchors.append(x)
+    anchors.sort()
+
+    assigned: list[list[tuple[int, str]]] = []
+    for row in per_line:
+        assigned.append([
+            (min(range(len(anchors)), key=lambda n: abs(anchors[n] - x)), text)
+            for x, text in row
+        ])
+
+    # Place anchors by constraint, not by accumulation.
+    #
+    # Summing every anchor's width makes the page as wide as the total of all
+    # columns that appear anywhere on it, even though no single line uses
+    # them all: a page with a 4-column table and 2-column prose ends up
+    # 6 columns wide. Instead each anchor only has to clear whatever actually
+    # precedes it on the lines where it appears.
+    starts = [0] * len(anchors)
+    for k in range(len(anchors)):
+        need = 0
+        for row in assigned:
+            for pos, (idx, text) in enumerate(row):
+                if idx != k or pos == 0:
+                    continue
+                prev_idx, prev_text = row[pos - 1]
+                need = max(need, starts[prev_idx] + len(prev_text) + gutter)
+        starts[k] = max(need, starts[k - 1] + gutter if k else 0)
+
+    # Vertical gaps survive, so paragraph breaks and table gutters read.
+    heights = [statistics.median(b.h for b in line) for line in lines]
+    line_h = statistics.median(heights) or 12.0
+
+    out: list[str] = []
+    prev_bottom: float | None = None
+    for row, line in zip(assigned, lines):
+        top = min(b.y0 for b in line)
+        if prev_bottom is not None:
+            for _ in range(min(int((top - prev_bottom) / max(line_h, 1.0)), 3)):
+                out.append("")
+
+        text_row = ""
+        for k, text in row:
+            col = max(starts[k], len(text_row) + (1 if text_row else 0))
+            text_row = text_row.ljust(col) + text
+        out.append(text_row.rstrip())
+        prev_bottom = max(b.y1 for b in line)
+
+    return "\n".join(out)
+
+
+def preserve_grid(boxes: list[Box], max_cols: int = 220) -> str:
+    """The raw pixel grid, kept for comparison. True to the page geometry,
+    but wide and full of dead space on anything with a big gutter."""
     lines = cluster_lines(boxes)
     if not lines:
         return ""
@@ -301,57 +433,6 @@ def columns(boxes: list[Box], gap_ratio: float = 2.5) -> list[tuple[float, float
     if cursor < page_r:
         cols.append((cursor, page_r))
     return [c for c in cols if c[1] - c[0] > cw * 4]
-
-
-# ==========================================================================
-# table extraction
-# ==========================================================================
-def split_cells(line: list[Box], cw: float, gap: float = 2.2) -> list[tuple[float, str]]:
-    """Split one line into cells wherever the horizontal gap gets wide.
-
-    Words inside a cell sit about one space apart. A column gutter is several
-    characters wide, so `gap` character-advances is a reliable separator and
-    scales with the page's own type size.
-    """
-    if not line:
-        return []
-    cells, start, parts = [], line[0].x0, [line[0].text]
-    for prev, box in zip(line, line[1:]):
-        if (box.x0 - prev.x1) > cw * gap:
-            cells.append((start, " ".join(parts)))
-            start, parts = box.x0, [box.text]
-        else:
-            parts.append(box.text)
-    cells.append((start, " ".join(parts)))
-    return cells
-
-
-_NUMERIC = re.compile(r"^[\s$£€₹]*[-+]?[\d,]+(?:\.\d+)?\s*%?$")
-
-
-def is_tabular(grid: list[list[str]]) -> bool:
-    """Separate a real table from two columns of prose.
-
-    Both align on the same anchors, so geometry alone cannot tell them apart.
-    What does: table cells are short, and tables usually carry a numeric
-    column. A two-column article has long cells and no numbers, so requiring
-    either short cells or a numeric column rejects it without rejecting a
-    text-only table like name / role / team.
-    """
-    cells = [c for row in grid for c in row if c.strip()]
-    if not cells:
-        return False
-
-    # A column counts as numeric if most of its filled cells parse as numbers.
-    cols = len(grid[0])
-    numeric_cols = 0
-    for k in range(cols):
-        vals = [row[k].strip() for row in grid if k < len(row) and row[k].strip()]
-        if len(vals) >= 2 and sum(bool(_NUMERIC.match(v)) for v in vals) / len(vals) >= 0.6:
-            numeric_cols += 1
-
-    median_len = statistics.median(len(c) for c in cells)
-    return numeric_cols >= 1 or median_len <= 18
 
 
 def detect_tables(boxes: list[Box], min_rows: int = 3, min_cols: int = 2) -> list[dict]:

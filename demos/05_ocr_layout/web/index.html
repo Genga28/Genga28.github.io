@@ -52,7 +52,8 @@ button{ font:inherit; color:inherit; background:none; border:0; cursor:pointer; 
 .hint{ font-size:12.5px; color:var(--txt-3); }
 
 /* ---------- 50 / 50 ---------- */
-main{ flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px; }
+main{ flex:1; min-height:0; display:grid;
+      grid-template-columns:minmax(0,0.78fr) minmax(0,1.22fr); gap:12px; padding:12px; }
 @media (max-width:1060px){ body{ overflow:auto; } main{ grid-template-columns:1fr; height:auto; } }
 
 .pane{ min-width:0; min-height:0; display:flex; flex-direction:column;
@@ -182,19 +183,19 @@ table.x td.num{ text-align:right; font-variant-numeric:tabular-nums; font-family
 /* ---------- stats strip ---------- */
 .stats{ flex:none; display:grid; grid-template-columns:repeat(6,1fr); gap:1px;
         background:var(--line); border-bottom:1px solid var(--line); }
-.stat{ background:var(--paper); padding:8px 10px; text-align:center; }
-.stat b{ display:block; font-family:var(--fd); font-weight:800; font-size:17px; letter-spacing:-.03em;
+.stat{ background:var(--paper); padding:7px 6px; text-align:center; }
+.stat b{ display:block; font-family:var(--fd); font-weight:800; font-size:16px; letter-spacing:-.03em;
          font-variant-numeric:tabular-nums; line-height:1.2; }
 .stat span{ font-size:10.5px; color:var(--txt-3); }
 .stat:nth-child(1) b{ color:var(--blue); } .stat:nth-child(2) b{ color:var(--teal); }
 .stat:nth-child(3) b{ color:var(--violet); } .stat:nth-child(4) b{ color:var(--amber); }
-.stat:nth-child(5) b{ color:var(--pink); } .stat:nth-child(6) b{ color:var(--txt); }
+.stat:nth-child(5) b{ color:var(--red); } .stat:nth-child(6) b{ color:var(--pink); }
 .verdict{ flex:none; padding:8px 14px; font-size:12.5px; color:var(--txt-2);
           border-bottom:1px solid var(--line); background:#F6F3FF; }
 .verdict b{ color:var(--violet); }
 .scroll{ flex:1; min-height:0; overflow:auto; background:var(--desk); }
-.scroll > .sheet{ width:auto; min-width:min(100%,760px); }
-.scroll > .sheet{ margin:16px auto; max-width:760px; }
+.scroll > .sheet{ width:100%; min-width:0; }
+.scroll > .sheet{ margin:14px; }
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important;
@@ -224,6 +225,15 @@ table.x td.num{ text-align:right; font-variant-numeric:tabular-nums; font-family
       <span class="lbl">Page</span>
       <span class="right" id="engineTag">no engine loaded</span>
     </div>
+    <div class="stats" id="stats">
+      <div class="stat"><b>&mdash;</b><span>boxes</span></div>
+      <div class="stat"><b>&mdash;</b><span>lines</span></div>
+      <div class="stat"><b>&mdash;</b><span>columns</span></div>
+      <div class="stat"><b>&mdash;</b><span>tables</span></div>
+      <div class="stat"><b>&mdash;</b><span>figures</span></div>
+      <div class="stat"><b>&mdash;</b><span>conf</span></div>
+    </div>
+    <div class="verdict" id="verdict">Load a page to compare the two reconstructions.</div>
     <div class="desk" id="desk">
       <div class="sheet page">
         <div class="empty" id="stageEmpty"><i>&#9638;</i>Nothing loaded yet</div>
@@ -253,15 +263,6 @@ table.x td.num{ text-align:right; font-variant-numeric:tabular-nums; font-family
 
   <!-- ===================== extraction ===================== -->
   <section class="pane">
-    <div class="stats" id="stats">
-      <div class="stat"><b>&mdash;</b><span>boxes</span></div>
-      <div class="stat"><b>&mdash;</b><span>lines</span></div>
-      <div class="stat"><b>&mdash;</b><span>columns</span></div>
-      <div class="stat"><b>&mdash;</b><span>tables</span></div>
-      <div class="stat"><b>&mdash;</b><span>conf</span></div>
-      <div class="stat"><b>&mdash;</b><span>ms</span></div>
-    </div>
-    <div class="verdict" id="verdict">Load a page to compare the two reconstructions.</div>
     <div class="tabs" id="tabs">
       <button class="on" data-tab="preserved">Layout preserved</button>
       <button data-tab="flattened">Flattened</button>
@@ -366,8 +367,6 @@ function drawBoxes(d) {
 }
 
 /* ---------------- extraction ---------------- */
-const MIN_FIT = 0.62;   // below this the type stops being readable; scroll instead
-
 function applyZoom() {
   const doc = els.out.querySelector(".doc");
   if (!doc) return;
@@ -383,8 +382,11 @@ function applyZoom() {
     const need = pre.scrollWidth;
     let k = zoom;
     if (k === null) {
-      k = need ? avail / need : 1;
-      k = Math.max(MIN_FIT, Math.min(k, 1.5));   // readable floor and ceiling
+      // Fit exactly. A "readable floor" here is what produced the sideways
+      // scrollbar: clamping above the true fit leaves the line wider than
+      // the pane. If it comes out small, + is right there.
+      k = need ? (avail - 4) / need : 1;
+      k = Math.min(k, 1.5);
     }
     pre.style.zoom = k.toFixed(4);
     els.zPct.textContent = Math.round(k * 100) + "%";
@@ -480,7 +482,7 @@ function render(d) {
 
   const a = d.analysis, c = els.stats.querySelectorAll(".stat b");
   countUp(c[0],a.boxes); countUp(c[1],a.lines); countUp(c[2],a.columns);
-  countUp(c[3],a.tables||0); countUp(c[4],a.mean_conf); countUp(c[5],d.ms);
+  countUp(c[3],a.tables||0); countUp(c[4],a.figures||0); countUp(c[5],a.mean_conf);
   els.tblCount.textContent = a.tables || 0;
   els.tblCount.hidden = !a.tables;
   els.figCount.textContent = a.figures || 0;
