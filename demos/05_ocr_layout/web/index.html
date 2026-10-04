@@ -148,6 +148,7 @@ main{ flex:1; min-height:0; display:grid;
    characters of every row. */
 .doc pre .ln{ display:block; }
 .doc pre.flat{ color:#5A6B82; }
+/* inline colour from applyZoom wins over this at small sizes, by design */
 .doc pre .ln{ display:block; opacity:0; animation:slidein .3s var(--ease) forwards; }
 @keyframes slidein{ from{ opacity:0; transform:translateX(-6px); } to{ opacity:1; transform:none; } }
 pre.msg{ margin:0; padding:24px; font-family:var(--fm); font-size:12.5px; line-height:1.6;
@@ -408,8 +409,19 @@ function applyZoom() {
   px = Math.max(MIN_PT, Math.min(px, MAX_PT));
 
   pre.style.fontSize = px.toFixed(2) + "px";
+
+  // Below about 9px a 400-weight monospace stem is under a pixel wide, so
+  // it grey-washes and the glyphs stop separating. Add weight and contrast
+  // as the type shrinks: heavier strokes survive the rounding, and a darker
+  // ink keeps the edges from fading into the paper.
+  const weight = px < 7.5 ? 600 : px < 9 ? 500 : 400;
+  pre.style.fontWeight = weight;
+  pre.style.color = px < 7.5 ? "#000000" : px < 9 ? "#0B1420" : "";
+  // A touch of tracking stops adjacent stems merging at the smallest sizes.
+  pre.style.letterSpacing = px < 7.5 ? "0.02em" : "";
+
   lastPx = px;
-  els.zPct.textContent = px.toFixed(1) + "px · " + cols + "c";
+  els.zPct.textContent = px.toFixed(1) + "px" + (weight > 400 ? " b" : "") + " · " + cols + "c";
 }
 
 function renderText() {
