@@ -10,7 +10,7 @@ that a recruiter would have to figure out.
 | # | Demo | Video id | Shows |
 |---|------|----------|-------|
 | 1 | Desktop RPA: medical bill to Excel | `rpa` | PyAutoGUI scroll-and-find, colour anchoring, PDF OCR, typing into Excel |
-| 2 | Web automation: drug reference table | `webauto` | Selenium, structured scraping, openpyxl |
+| 2 | Web automation: drug reference table | `webauto` | Selenium, structured scraping, browser-driven PDF downloads, 3-sheet Excel |
 | 3 | Voice agent with avatar | `voice` | ASR, TTS, animated avatar, optional Claude brain |
 | 4 | Real-time proctoring | `proctoring` | MediaPipe face mesh, iris gaze, signal fusion |
 | 5 | Layout-preserving OCR studio | `ocr` | Tesseract, column anchoring, table and figure detection |
