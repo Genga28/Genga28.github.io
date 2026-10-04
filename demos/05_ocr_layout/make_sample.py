@@ -73,7 +73,7 @@ CHARGES = [
 
 def build(path: Path, seed: int | None = None) -> Path:
     rng = random.Random(seed)
-    W, H = 1240, 1680
+    W, H = 1240, 1754          # A4 at 150 dpi (210x297mm), so the sheet is a real page
     img = Image.new("RGB", (W, H), "white")
     d = ImageDraw.Draw(img)
 

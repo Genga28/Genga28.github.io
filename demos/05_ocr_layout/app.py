@@ -10,11 +10,14 @@ the geometry. On a multi-column page they are not the same document.
     POST /api/ocr      an image -> boxes, both reconstructions, page analysis
     GET  /api/sample   generate a deliberately awkward multi-column page
     GET  /api/export   the preserved text as .txt
+    GET  /api/tables/<token>.csv   every detected table
+    GET  /api/tables/<token>.xlsx  one worksheet per table
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import io
 import time
 import uuid
@@ -25,7 +28,7 @@ import os
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 import layout as L
@@ -41,7 +44,7 @@ app = FastAPI(title="OCR layout studio")
 
 _engine = None
 _engine_note = "not loaded"
-_last_text: dict[str, str] = {}
+_last: dict[str, dict] = {}        # token -> {"text":..., "tables":[...]}
 
 
 def engine():
@@ -113,16 +116,19 @@ async def ocr(file: UploadFile = File(...)):
         return JSONResponse({
             "url": f"/uploads/{path.name}", "width": width, "height": height,
             "engine": _engine.name, "ms": elapsed, "boxes": [],
-            "preserved": "", "flattened": "", "analysis": L.analyse([]),
+            "preserved": "", "flattened": "", "tables": [], "analysis": L.analyse([]),
             "token": "", "verdict": "Nothing detected on this page.",
         })
 
     preserved = L.preserve(boxes)
     flattened = L.flatten(boxes)
     analysis = L.analyse(boxes)
+    tables = L.detect_tables(boxes)
+    analysis["tables"] = len(tables)
+    analysis["table_rows"] = sum(len(t["rows"]) for t in tables)
 
     token = uuid.uuid4().hex[:8]
-    _last_text[token] = preserved
+    _last[token] = {"text": preserved, "tables": tables}
 
     cols = analysis["columns"]
     verdict = (
@@ -137,17 +143,71 @@ async def ocr(file: UploadFile = File(...)):
         "width": width, "height": height,
         "engine": _engine.name, "ms": elapsed,
         "boxes": L.to_payload(boxes),
-        "preserved": preserved, "flattened": flattened,
+        "preserved": preserved, "flattened": flattened, "tables": tables,
         "analysis": analysis, "token": token, "verdict": verdict,
     })
 
 
 @app.get("/api/export/{token}")
 async def export(token: str):
-    text = _last_text.get(token)
-    if text is None:
+    got = _last.get(token)
+    if got is None:
         raise HTTPException(404, "nothing to export")
-    return PlainTextResponse(text, headers={"Content-Disposition": 'attachment; filename="layout.txt"'})
+    return PlainTextResponse(got["text"], headers={"Content-Disposition": 'attachment; filename="layout.txt"'})
+
+
+@app.get("/api/tables/{token}.csv")
+async def tables_csv(token: str):
+    """Every detected table, blank line between them."""
+    got = _last.get(token)
+    if got is None or not got["tables"]:
+        raise HTTPException(404, "no tables detected on that page")
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    for n, t in enumerate(got["tables"], 1):
+        writer.writerow([f"# table {n}"])
+        writer.writerows(t["rows"])
+        writer.writerow([])
+    return PlainTextResponse(
+        buf.getvalue(), media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="tables.csv"'},
+    )
+
+
+@app.get("/api/tables/{token}.xlsx")
+async def tables_xlsx(token: str):
+    """One worksheet per table, first row styled as a header."""
+    got = _last.get(token)
+    if got is None or not got["tables"]:
+        raise HTTPException(404, "no tables detected on that page")
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    wb = Workbook()
+    wb.remove(wb.active)
+    for n, t in enumerate(got["tables"], 1):
+        ws = wb.create_sheet(f"Table {n}")
+        for r, row in enumerate(t["rows"], 1):
+            for c, value in enumerate(row, 1):
+                cell = ws.cell(row=r, column=c, value=value)
+                if r == 1:
+                    cell.font = Font(bold=True, color="FFFFFF")
+                    cell.fill = PatternFill("solid", fgColor="16324F")
+                    cell.alignment = Alignment(horizontal="center")
+        for c in range(1, t["cols"] + 1):
+            longest = max((len(str(r[c-1])) for r in t["rows"] if c-1 < len(r)), default=10)
+            ws.column_dimensions[get_column_letter(c)].width = min(max(longest + 3, 12), 48)
+        ws.freeze_panes = "A2"
+
+    out = io.BytesIO()
+    wb.save(out)
+    return Response(
+        out.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="tables.xlsx"'},
+    )
 
 
 def main() -> int:

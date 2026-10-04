@@ -8,12 +8,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
+/* Light on purpose. This is a tool for looking at documents, and documents
+   are white: a dark viewer fights the thing you are trying to read. */
 :root{
-  --bg:#080B11; --bg-2:#0D121B; --surface:#141B27; --surface-2:#1B2431; --line:#232D3C;
-  --txt:#EEF3FA; --txt-2:#98A6B9; --txt-3:#66738699;
-  --blue:#7AB8FF; --violet:#B49BF5; --teal:#5FD9C4; --amber:#F5BE8B; --pink:#F49BB8; --red:#EE7F7F;
+  --paper:#FFFFFF; --bg:#F1F4F8; --bg-2:#F8FAFC; --line:#E3E8EF; --line-2:#CBD5E1;
+  --txt:#16202E; --txt-2:#55637A; --txt-3:#8A96A8;
+  --blue:#2563EB; --violet:#7C3AED; --teal:#0D9488; --amber:#C2740A; --pink:#DB2777; --red:#DC2626;
   --ease:cubic-bezier(.16,1,.3,1);
   --fd:"Archivo",system-ui,sans-serif; --fb:"IBM Plex Sans",system-ui,sans-serif; --fm:"IBM Plex Mono",monospace;
+  --shadow:0 1px 2px rgba(16,32,54,.05), 0 8px 24px -12px rgba(16,32,54,.16);
 }
 *,*::before,*::after{ box-sizing:border-box; }
 body{ margin:0; background:var(--bg); color:var(--txt); font-family:var(--fb); font-size:15.5px; line-height:1.6; -webkit-font-smoothing:antialiased; }
@@ -21,88 +24,122 @@ h1,h2,h3{ font-family:var(--fd); letter-spacing:-.03em; margin:0; }
 button{ font:inherit; color:inherit; background:none; border:0; cursor:pointer; }
 :focus-visible{ outline:2px solid var(--blue); outline-offset:2px; border-radius:4px; }
 
-.glow{ position:fixed; inset:-30% -10% auto; height:70vh; z-index:0; pointer-events:none; filter:blur(100px); opacity:.42;
-  background:radial-gradient(45% 60% at 22% 40%,#2F6CBF,transparent 70%),radial-gradient(40% 55% at 76% 30%,#6B4FB0,transparent 70%); }
+.wash{ position:fixed; inset:-20% -10% auto; height:52vh; z-index:0; pointer-events:none; filter:blur(90px); opacity:.5;
+  background:radial-gradient(44% 60% at 20% 40%,#BFD4FF,transparent 70%),radial-gradient(40% 55% at 78% 26%,#DDD0FA,transparent 70%); }
 
-header{ position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:26px 34px; flex-wrap:wrap; }
+header{ position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:24px 34px; flex-wrap:wrap; }
 .title{ display:flex; align-items:center; gap:14px; }
-.mark{ width:38px; height:38px; border-radius:12px; background:linear-gradient(140deg,var(--blue),var(--violet) 55%,var(--pink)); box-shadow:0 0 30px -8px var(--violet); animation:spin 9s linear infinite; }
+.mark{ width:38px; height:38px; border-radius:12px; background:linear-gradient(140deg,var(--blue),var(--violet) 55%,var(--pink)); box-shadow:0 6px 20px -6px rgba(124,58,237,.55); animation:spin 9s linear infinite; }
 @keyframes spin{ to{ transform:rotate(360deg); } }
 .title h1{ font-size:22px; font-weight:800; line-height:1.15; }
 .title p{ margin:0; font-size:13.5px; color:var(--txt-2); }
 .tools{ display:flex; gap:10px; flex-wrap:wrap; }
-.btn{ padding:11px 20px; border-radius:100px; border:1px solid var(--line); background:var(--surface); font-size:14.5px; font-weight:500; transition:transform .35s var(--ease), background .35s var(--ease), border-color .35s var(--ease); }
-.btn:hover{ transform:translateY(-2px); background:var(--surface-2); border-color:#31415A; }
-.btn.primary{ background:linear-gradient(135deg,var(--blue),var(--violet)); color:#08121E; border-color:transparent; font-weight:600; box-shadow:0 14px 34px -16px var(--violet); }
+.btn{ padding:11px 20px; border-radius:100px; border:1px solid var(--line-2); background:var(--paper); font-size:14.5px; font-weight:500; box-shadow:0 1px 2px rgba(16,32,54,.04); transition:transform .35s var(--ease), box-shadow .35s var(--ease), border-color .35s var(--ease); }
+.btn:hover{ transform:translateY(-2px); box-shadow:var(--shadow); border-color:#AFC0D6; }
+.btn.primary{ background:linear-gradient(135deg,var(--blue),var(--violet)); color:#fff; border-color:transparent; font-weight:600; box-shadow:0 10px 26px -12px rgba(124,58,237,.8); }
 .btn:disabled{ opacity:.5; cursor:wait; transform:none; }
 
 main{ position:relative; z-index:2; padding:0 34px 40px; display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
 @media (max-width:1100px){ main{ grid-template-columns:1fr; } }
 
-.panel{ border:1px solid var(--line); border-radius:18px; background:var(--bg-2); overflow:hidden; }
-.panel > h3{ font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.09em; color:var(--txt-2); padding:16px 20px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:12px; align-items:center; }
+.panel{ border:1px solid var(--line); border-radius:18px; background:var(--paper); overflow:hidden; box-shadow:var(--shadow); }
+.panel > h3{ font-size:12.5px; font-weight:600; text-transform:uppercase; letter-spacing:.09em; color:var(--txt-2); padding:15px 20px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:12px; align-items:center; background:var(--bg-2); }
 
-/* ---------- drop zone ---------- */
-.drop{ margin:0 34px 20px; border:1.5px dashed var(--line); border-radius:18px; padding:26px; display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; text-align:center; transition:border-color .35s var(--ease), background .35s var(--ease); position:relative; z-index:2; }
-.drop.over{ border-color:var(--blue); background:rgba(122,184,255,.07); }
+.drop{ margin:0 34px 20px; border:1.5px dashed var(--line-2); border-radius:18px; padding:24px; display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; text-align:center; background:var(--paper); transition:border-color .35s var(--ease), background .35s var(--ease); position:relative; z-index:2; }
+.drop.over{ border-color:var(--blue); background:#EFF5FF; }
 .drop b{ font-weight:600; }
 .drop span{ color:var(--txt-2); font-size:14px; }
 
-/* ---------- page + boxes ---------- */
-.stage{ position:relative; background:#05070B; }
-.stage img{ display:block; width:100%; }
-.stage svg{ position:absolute; inset:0; width:100%; height:100%; }
-.bx{ fill:rgba(122,184,255,.07); stroke:var(--blue); stroke-width:1.1; opacity:0; transform-box:fill-box; transform-origin:center;
-     animation:pop .5s var(--ease) forwards; }
-.bx.low{ stroke:var(--amber); fill:rgba(245,190,139,.10); }
-.bx.bad{ stroke:var(--red); fill:rgba(238,127,127,.12); }
+/* Both panes are A4 sheets on a desk, so the uploaded page and the
+   reconstruction can be compared at the same size, like two printouts. */
+.desk{ position:relative; background:#E4E9F0; padding:22px; display:flex; justify-content:center;
+       min-height:420px; max-height:min(74vh,840px); overflow:auto; }
+.sheet{
+  position:relative; background:#fff; width:100%; max-width:560px; aspect-ratio:1 / 1.4142;
+  box-shadow:0 2px 6px rgba(16,32,54,.10), 0 18px 44px -20px rgba(16,32,54,.38);
+  border-radius:3px; flex:none; display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.sheet.grow{ aspect-ratio:auto; min-height:360px; align-items:flex-start; }
+.pagebox{ position:relative; max-width:100%; max-height:100%; }
+.pagebox img{ display:block; width:100%; height:100%; }
+.pagebox svg{ position:absolute; inset:0; width:100%; height:100%; }
+.a4tag{ position:absolute; right:10px; bottom:8px; font-size:11px; color:var(--txt-3); letter-spacing:.04em; z-index:3; }
+.bx{ fill:rgba(37,99,235,.08); stroke:var(--blue); stroke-width:1.1; opacity:0; transform-box:fill-box; transform-origin:center; animation:pop .5s var(--ease) forwards; }
+.bx.low{ stroke:var(--amber); fill:rgba(194,116,10,.10); }
+.bx.bad{ stroke:var(--red); fill:rgba(220,38,38,.10); }
 @keyframes pop{ from{ opacity:0; transform:scale(.72); } to{ opacity:1; transform:scale(1); } }
-.colband{ fill:rgba(180,155,245,.10); stroke:var(--violet); stroke-width:1; stroke-dasharray:5 5; opacity:0; animation:fadein .7s var(--ease) .1s forwards; }
+.colband{ fill:rgba(124,58,237,.07); stroke:var(--violet); stroke-width:1; stroke-dasharray:5 5; opacity:0; animation:fadein .7s var(--ease) .1s forwards; }
+.tbl-box{ fill:rgba(13,148,136,.09); stroke:var(--teal); stroke-width:2; opacity:0; animation:fadein .7s var(--ease) .35s forwards; }
 @keyframes fadein{ to{ opacity:1; } }
 
 .scanner{ position:absolute; left:0; right:0; height:120px; pointer-events:none; opacity:0;
-  background:linear-gradient(180deg,transparent,rgba(122,184,255,.20) 46%,rgba(122,184,255,.65) 50%,rgba(122,184,255,.20) 54%,transparent); }
+  background:linear-gradient(180deg,transparent,rgba(37,99,235,.14) 46%,rgba(37,99,235,.42) 50%,rgba(37,99,235,.14) 54%,transparent); }
 .stage.busy .scanner{ opacity:1; animation:sweep 1.25s var(--ease) infinite; }
 @keyframes sweep{ 0%{ top:-14%; } 100%{ top:100%; } }
 
-.empty{ padding:64px 24px; text-align:center; color:var(--txt-3); }
-.empty div{ font-size:44px; margin-bottom:10px; opacity:.45; }
+.empty{ display:grid; place-content:center; text-align:center; color:var(--txt-3); height:100%; }
+.empty div{ font-size:44px; margin-bottom:10px; opacity:.4; }
 
-/* ---------- stats ---------- */
-.stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:1px; background:var(--line); border-bottom:1px solid var(--line); }
-.stat{ background:var(--bg-2); padding:15px 16px; }
-.stat b{ display:block; font-family:var(--fd); font-weight:800; font-size:25px; letter-spacing:-.035em; font-variant-numeric:tabular-nums; line-height:1.15; }
+.stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(104px,1fr)); gap:1px; background:var(--line); border-bottom:1px solid var(--line); }
+.stat{ background:var(--paper); padding:14px 16px; }
+.stat b{ display:block; font-family:var(--fd); font-weight:800; font-size:24px; letter-spacing:-.035em; font-variant-numeric:tabular-nums; line-height:1.15; }
 .stat span{ font-size:12px; color:var(--txt-2); }
 .stat:nth-child(1) b{ color:var(--blue); } .stat:nth-child(2) b{ color:var(--teal); }
 .stat:nth-child(3) b{ color:var(--violet); } .stat:nth-child(4) b{ color:var(--amber); }
-.stat:nth-child(5) b{ color:var(--pink); }
+.stat:nth-child(5) b{ color:var(--pink); } .stat:nth-child(6) b{ color:var(--txt); }
 
-.verdict{ padding:14px 20px; font-size:14px; color:var(--txt-2); border-bottom:1px solid var(--line); background:rgba(180,155,245,.06); }
+.verdict{ padding:14px 20px; font-size:14px; color:var(--txt-2); border-bottom:1px solid var(--line); background:#F6F3FF; }
 .verdict b{ color:var(--violet); }
 
-/* ---------- tabs ---------- */
-.tabs{ display:flex; gap:4px; padding:12px 16px 0; border-bottom:1px solid var(--line); }
-.tabs button{ padding:10px 16px; font-size:14px; color:var(--txt-2); border-bottom:2px solid transparent; transition:color .3s, border-color .3s; }
-.tabs button.on{ color:var(--blue); border-bottom-color:var(--blue); }
-pre{ margin:0; padding:20px; font-family:var(--fm); font-size:12.5px; line-height:1.52; color:#D6E2F2;
-     white-space:pre; overflow:auto; max-height:min(64vh,720px); tab-size:4; }
-pre.flat{ color:#B9C6D6; }
-pre .ln{ display:block; opacity:0; animation:slidein .32s var(--ease) forwards; }
+.tabs{ display:flex; gap:2px; padding:10px 14px 0; border-bottom:1px solid var(--line); background:var(--bg-2); flex-wrap:wrap; }
+.tabs button{ padding:10px 15px; font-size:14px; color:var(--txt-2); border-bottom:2px solid transparent; transition:color .3s, border-color .3s; }
+.tabs button:hover{ color:var(--txt); }
+.tabs button.on{ color:var(--blue); border-bottom-color:var(--blue); font-weight:600; }
+.tabs .count{ display:inline-block; min-width:18px; margin-left:6px; padding:1px 6px; border-radius:100px; background:var(--teal); color:#fff; font-size:11px; font-weight:600; }
+
+/* Text is laid onto the sheet at page margins, then scaled so the widest
+   line fits the paper exactly, the way a PDF renderer fits a page. */
+.doc{ position:absolute; inset:7.4% 6.4%; overflow:hidden; }
+.doc pre{ margin:0; font-family:var(--fm); font-size:11px; line-height:1.5; color:#223049;
+          white-space:pre; transform-origin:0 0; tab-size:4; }
+.doc pre.flat{ color:#64748B; }
+pre.msg{ margin:0; padding:22px; font-family:var(--fm); font-size:12.5px; line-height:1.55;
+         color:#55637A; white-space:pre-wrap; background:var(--paper); }
+.doc pre .ln{ display:block; opacity:0; animation:slidein .32s var(--ease) forwards; }
 @keyframes slidein{ from{ opacity:0; transform:translateX(-7px); } to{ opacity:1; transform:none; } }
 
-.legend{ display:flex; gap:16px; flex-wrap:wrap; padding:12px 20px; border-top:1px solid var(--line); font-size:12.5px; color:var(--txt-2); }
+/* ---------- extracted tables ---------- */
+.tblwrap{ padding:30px 34px; width:100%; }
+.tblwrap h4{ font-family:var(--fd); font-size:14px; margin:0 0 10px; display:flex; align-items:center; gap:10px; }
+.tblwrap h4 span{ font-family:var(--fb); font-weight:400; font-size:12.5px; color:var(--txt-3); }
+.tblwrap + .tblwrap{ border-top:1px solid var(--line); }
+table.x{ border-collapse:separate; border-spacing:0; width:100%; font-size:13.5px; margin-bottom:22px;
+         border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+table.x th,table.x td{ padding:9px 13px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top; }
+table.x thead th{ background:#16324F; color:#fff; font-weight:600; font-size:12.5px; position:sticky; top:0; }
+table.x tbody tr:nth-child(even){ background:var(--bg-2); }
+table.x tbody tr:last-child td{ border-bottom:0; }
+table.x tbody tr{ opacity:0; animation:rowin .4s var(--ease) forwards; }
+@keyframes rowin{ from{ opacity:0; transform:translateY(5px); } to{ opacity:1; transform:none; } }
+table.x td.num{ text-align:right; font-variant-numeric:tabular-nums; font-family:var(--fm); font-size:12.5px; }
+.exports{ display:flex; gap:9px; flex-wrap:wrap; margin-bottom:18px; }
+.exports a{ font-size:13.5px; padding:8px 15px; border-radius:100px; border:1px solid var(--line-2); background:var(--paper); color:var(--txt); text-decoration:none; transition:border-color .3s, transform .3s var(--ease); }
+.exports a:hover{ border-color:var(--teal); color:var(--teal); transform:translateY(-1px); }
+.none{ padding:40px 20px; text-align:center; color:var(--txt-3); background:var(--paper); }
+
+.legend{ display:flex; gap:16px; flex-wrap:wrap; padding:12px 20px; border-top:1px solid var(--line); font-size:12.5px; color:var(--txt-2); background:var(--bg-2); }
 .legend i{ display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
 
 footer{ position:relative; z-index:2; padding:0 34px 40px; color:var(--txt-3); font-size:13px; }
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
-  .bx,.colband,pre .ln{ opacity:1 !important; }
+  .bx,.colband,.tbl-box,pre .ln,table.x tbody tr{ opacity:1 !important; }
 }
 </style>
 </head>
 <body>
-<div class="glow" aria-hidden="true"></div>
+<div class="wash" aria-hidden="true"></div>
 
 <header>
   <div class="title">
@@ -127,70 +164,84 @@ footer{ position:relative; z-index:2; padding:0 34px 40px; color:var(--txt-3); f
 <main>
   <section class="panel">
     <h3>Page <span id="engineTag">no engine loaded</span></h3>
-    <div class="stage" id="stage">
-      <div class="empty" id="stageEmpty"><div>▦</div>Nothing loaded yet</div>
-      <img id="page" alt="" hidden>
-      <svg id="overlay" hidden></svg>
-      <div class="scanner" aria-hidden="true"></div>
+    <div class="desk" id="stage">
+      <div class="sheet">
+        <div class="empty" id="stageEmpty"><div>&#9638;</div>Nothing loaded yet</div>
+        <div class="pagebox" id="pagebox" hidden>
+          <img id="page" alt="">
+          <svg id="overlay"></svg>
+        </div>
+        <span class="a4tag" id="a4tag"></span>
+        <div class="scanner" aria-hidden="true"></div>
+      </div>
     </div>
     <div class="legend">
       <span><i style="background:var(--blue)"></i>confident</span>
       <span><i style="background:var(--amber)"></i>below 0.80</span>
       <span><i style="background:var(--red)"></i>below 0.60</span>
       <span><i style="background:var(--violet)"></i>column band</span>
+      <span><i style="background:var(--teal)"></i>table</span>
     </div>
   </section>
 
   <section class="panel">
     <div class="stats" id="stats">
-      <div class="stat"><b>—</b><span>boxes</span></div>
-      <div class="stat"><b>—</b><span>lines</span></div>
-      <div class="stat"><b>—</b><span>columns</span></div>
-      <div class="stat"><b>—</b><span>mean conf</span></div>
-      <div class="stat"><b>—</b><span>ms</span></div>
+      <div class="stat"><b>&mdash;</b><span>boxes</span></div>
+      <div class="stat"><b>&mdash;</b><span>lines</span></div>
+      <div class="stat"><b>&mdash;</b><span>columns</span></div>
+      <div class="stat"><b>&mdash;</b><span>tables</span></div>
+      <div class="stat"><b>&mdash;</b><span>mean conf</span></div>
+      <div class="stat"><b>&mdash;</b><span>ms</span></div>
     </div>
     <div class="verdict" id="verdict">Load a page to compare the two reconstructions.</div>
-    <div class="tabs">
+    <div class="tabs" id="tabs">
       <button class="on" data-tab="preserved">Layout preserved</button>
       <button data-tab="flattened">Flattened</button>
-      <button data-tab="export" id="exportBtn">Export .txt</button>
+      <button data-tab="tables">Tables<span class="count" id="tblCount" hidden>0</span></button>
     </div>
-    <pre id="out">Drop a scanned invoice, a lab report or a bank statement in.
+    <div id="out"><pre class="msg">Drop a scanned invoice, a lab report or a bank statement in.
 
-The left pane shows what the detector found. This pane shows two
-reconstructions of the same boxes:
+The left pane shows what the detector found. This pane shows three
+readings of the same boxes:
 
   Layout preserved   boxes quantised onto a character grid derived
                      from the page's own median glyph advance, so
-                     columns stay columns and tables stay tables
+                     columns stay columns
 
   Flattened          the same boxes joined in reading order, which
-                     is what you get from a default OCR call
+                     is what a default OCR call gives you
 
-On a single-column page they agree. On anything with two columns
-they do not, and the flattened one is quietly wrong.</pre>
+  Tables             runs of lines whose cells land on the same
+                     vertical anchors, pulled out as real grids
+                     and exported to CSV or Excel
+
+On a single-column page the first two agree. On anything with two
+columns they do not, and the flattened one is quietly wrong.</pre></div>
   </section>
 </main>
 
-<footer>Runs locally. PaddleOCR when it is installed, Tesseract otherwise. Nothing is uploaded anywhere.</footer>
+<footer>Runs locally. PaddleOCR when installed, Tesseract otherwise. Nothing is uploaded anywhere.</footer>
 
 <script>
 const $ = s => document.querySelector(s);
 const els = {
   file:$("#file"), pick:$("#pickBtn"), sample:$("#sampleBtn"), drop:$("#drop"),
   stage:$("#stage"), page:$("#page"), svg:$("#overlay"), empty:$("#stageEmpty"),
-  stats:$("#stats"), out:$("#out"), verdict:$("#verdict"), tabs:document.querySelectorAll(".tabs button[data-tab]"),
-  engine:$("#engineTag"), export:$("#exportBtn"),
+  pagebox:$("#pagebox"), a4tag:$("#a4tag"),
+  stats:$("#stats"), out:$("#out"), verdict:$("#verdict"),
+  tabs:document.querySelectorAll("#tabs button[data-tab]"),
+  engine:$("#engineTag"), tblCount:$("#tblCount"),
 };
 let data = null, tab = "preserved";
 
 const NS = "http://www.w3.org/2000/svg";
 const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const isNum = s => /^[\s$£€₹]*[-+]?[\d,]+(?:\.\d+)?\s*%?$/.test(s || "");
 
 function countUp(node, target, suffix = "") {
-  const dur = 620, t0 = performance.now();
-  const num = typeof target === "number";
-  if (!num) { node.textContent = target; return; }
+  if (typeof target !== "number") { node.textContent = target; return; }
+  const dur = 600, t0 = performance.now();
   (function step(t) {
     const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
     node.textContent = (target % 1 ? (target * e).toFixed(2) : Math.round(target * e)) + suffix;
@@ -209,56 +260,116 @@ function drawBoxes(d) {
     svg.appendChild(el("rect", { class:"colband", x:x0, y:0, width:Math.max(x1-x0,1), height:d.height, rx:4 }));
   });
 
-  // Stagger the reveal in reading order so you can watch the detector sweep
-  // the page rather than having 400 rectangles appear at once.
+  (d.tables || []).forEach(t => {
+    const [x0,y0,x1,y1] = t.bbox;
+    svg.appendChild(el("rect", { class:"tbl-box", x:x0-6, y:y0-6, width:(x1-x0)+12, height:(y1-y0)+12, rx:6 }));
+  });
+
   const sorted = [...d.boxes].sort((a,b) => (a.y0 - b.y0) || (a.x0 - b.x0));
   const step = Math.max(2, Math.min(9, 1400 / Math.max(sorted.length, 1)));
   sorted.forEach((b, i) => {
     const cls = b.conf < 0.60 ? "bx bad" : b.conf < 0.80 ? "bx low" : "bx";
-    const r = el("rect", {
-      class:cls, x:b.x0, y:b.y0, width:Math.max(b.x1-b.x0,1), height:Math.max(b.y1-b.y0,1), rx:2,
-      style:`animation-delay:${(i*step).toFixed(0)}ms`,
-    });
+    const r = el("rect", { class:cls, x:b.x0, y:b.y0, width:Math.max(b.x1-b.x0,1), height:Math.max(b.y1-b.y0,1), rx:2,
+                           style:`animation-delay:${(i*step).toFixed(0)}ms` });
     r.appendChild(el("title", {})).textContent = `${b.text}  ·  ${(b.conf*100).toFixed(1)}%`;
     svg.appendChild(r);
   });
 }
 
+function renderTables() {
+  const ts = data.tables || [];
+  if (!ts.length) {
+    els.out.innerHTML = `<div class="desk"><div class="sheet grow"><div class="none">No tabular regions on this page.<br>
+      A table needs at least three consecutive lines whose cells land on the same
+      vertical anchors, plus either short cells or a numeric column &mdash; otherwise
+      two columns of prose would count as a table.</div></div></div>`;
+    return;
+  }
+  els.out.innerHTML = `<div class="desk"><div class="sheet grow"><div class="tblwrap">
+    <div class="exports">
+      <a href="/api/tables/${data.token}.xlsx">Download .xlsx</a>
+      <a href="/api/tables/${data.token}.csv">Download .csv</a>
+    </div>
+    ${ts.map((t, n) => {
+      const [head, ...body] = t.rows;
+      return `<h4>Table ${n+1}<span>${t.rows.length} rows &times; ${t.cols} columns</span></h4>
+      <table class="x">
+        <thead><tr>${head.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead>
+        <tbody>${body.map((r, i) =>
+          `<tr style="animation-delay:${i*34}ms">${r.map(c =>
+            `<td class="${isNum(c) ? "num" : ""}">${esc(c)}</td>`).join("")}</tr>`).join("")}
+        </tbody>
+      </table>`;
+    }).join("")}
+  </div></div></div>`;
+}
+
 function renderText() {
-  if (!data) return;
   const text = tab === "flattened" ? data.flattened : data.preserved;
-  els.out.className = tab === "flattened" ? "flat" : "";
   const lines = (text || "(nothing)").split("\n");
-  els.out.innerHTML = lines
-    .map((l, i) => `<span class="ln" style="animation-delay:${Math.min(i*11, 900)}ms">${
-      l.replace(/&/g,"&amp;").replace(/</g,"&lt;") || "&nbsp;"}</span>`)
-    .join("");
+  els.out.innerHTML = `<div class="desk"><div class="sheet"><div class="doc">
+    <pre class="${tab === "flattened" ? "flat" : ""}">${
+      lines.map((l, i) => `<span class="ln" style="animation-delay:${Math.min(i*11, 900)}ms">${esc(l) || "&nbsp;"}</span>`).join("")
+    }</pre></div><span class="a4tag">A4 &middot; ${lines.length} lines</span></div></div>`;
+  fitToPage(els.out.querySelector(".doc"));
+}
+
+/* Scale the text block so the widest line lands exactly on the page margin
+   and the column fits the sheet height. Same job a PDF viewer does when it
+   fits a page to the window. */
+function fitToPage(doc) {
+  if (!doc) return;
+  const pre = doc.querySelector("pre");
+  if (!pre) return;
+  pre.style.transform = "none";
+  requestAnimationFrame(() => {
+    const availW = doc.clientWidth, availH = doc.clientHeight;
+    const needW = pre.scrollWidth, needH = pre.scrollHeight;
+    if (!needW || !needH) return;
+    const k = Math.min(availW / needW, availH / needH, 1.6);
+    pre.style.transform = `scale(${k.toFixed(4)})`;
+  });
+}
+
+function renderPane() {
+  if (!data) return;
+  if (tab === "tables") renderTables(); else renderText();
 }
 
 function render(d) {
   data = d;
   els.empty.hidden = true;
+  els.pagebox.hidden = false;
+  // Give the box the document's own ratio so it letterboxes inside the A4
+  // sheet and the SVG overlay stays pixel-aligned with the image.
+  els.pagebox.style.aspectRatio = `${d.width} / ${d.height}`;
+  const ratio = (d.height / d.width).toFixed(3);
+  els.a4tag.textContent = `${d.width}×${d.height}  ·  ratio ${ratio}` +
+    (Math.abs(d.height / d.width - 1.4142) < 0.04 ? "  ·  A4" : "");
   els.page.src = d.url;
-  els.page.hidden = false;
   els.engine.textContent = `${d.engine} · ${d.ms} ms`;
 
   const a = d.analysis;
   const cells = els.stats.querySelectorAll(".stat b");
   countUp(cells[0], a.boxes); countUp(cells[1], a.lines); countUp(cells[2], a.columns);
-  countUp(cells[3], a.mean_conf); countUp(cells[4], d.ms);
+  countUp(cells[3], a.tables || 0); countUp(cells[4], a.mean_conf); countUp(cells[5], d.ms);
+
+  els.tblCount.textContent = a.tables || 0;
+  els.tblCount.hidden = !a.tables;
 
   els.verdict.innerHTML = `<b>${a.columns} column${a.columns===1?"":"s"}</b> · ${a.words} words · ` +
-    `${a.low_conf} low-confidence box${a.low_conf===1?"":"es"} · char advance ${a.char_width}px<br>${d.verdict}`;
+    `${a.tables||0} table${(a.tables||0)===1?"":"s"} (${a.table_rows||0} rows) · ` +
+    `${a.low_conf} low-confidence · advance ${a.char_width}px<br>${d.verdict}`;
 
   els.page.onload = () => drawBoxes(d);
   if (els.page.complete) drawBoxes(d);
-  renderText();
+  renderPane();
 }
 
 async function send(blob, name) {
   els.stage.classList.add("busy");
   els.pick.disabled = els.sample.disabled = true;
-  els.out.textContent = "Running detection and recognition…";
+  els.out.innerHTML = `<pre class="msg">Running detection and recognition…</pre>`;
   try {
     const fd = new FormData();
     fd.append("file", blob, name);
@@ -266,7 +377,7 @@ async function send(blob, name) {
     if (!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || r.statusText);
     render(await r.json());
   } catch (err) {
-    els.out.textContent = "Failed: " + err.message;
+    els.out.innerHTML = `<pre class="msg">Failed: ${esc(err.message)}</pre>`;
   } finally {
     els.stage.classList.remove("busy");
     els.pick.disabled = els.sample.disabled = false;
@@ -279,12 +390,10 @@ els.file.onchange = () => els.file.files[0] && send(els.file.files[0], els.file.
 els.sample.onclick = async () => {
   els.sample.disabled = true;
   try {
-    const r = await fetch("/api/sample");
-    const { url, name } = await r.json();
-    const blob = await (await fetch(url)).blob();
-    await send(blob, name);
+    const { url, name } = await (await fetch("/api/sample")).json();
+    await send(await (await fetch(url)).blob(), name);
   } catch (err) {
-    els.out.textContent = "Could not build a sample: " + err.message;
+    els.out.innerHTML = `<pre class="msg">Could not build a sample: ${esc(err.message)}</pre>`;
   } finally {
     els.sample.disabled = false;
   }
@@ -294,8 +403,7 @@ els.sample.onclick = async () => {
 ["dragleave","drop"].forEach(e => els.drop.addEventListener(e, ev => { ev.preventDefault(); els.drop.classList.remove("over"); }));
 els.drop.addEventListener("drop", ev => { const f = ev.dataTransfer.files[0]; if (f) send(f, f.name); });
 
-// Paste an image straight from the clipboard. Snip a region with Win+Shift+S,
-// press Ctrl+V anywhere on the page, and it goes through the same pipeline.
+// Paste an image straight from the clipboard. Snip with Win+Shift+S, Ctrl+V.
 addEventListener("paste", ev => {
   const item = [...(ev.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
   if (!item) return;
@@ -304,14 +412,12 @@ addEventListener("paste", ev => {
   if (blob) send(blob, "pasted." + (blob.type.split("/")[1] || "png"));
 });
 
+addEventListener("resize", () => fitToPage(els.out.querySelector(".doc")));
+
 els.tabs.forEach(b => b.onclick = () => {
-  if (b.dataset.tab === "export") {
-    if (data?.token) location.href = "/api/export/" + data.token;
-    return;
-  }
   tab = b.dataset.tab;
   els.tabs.forEach(x => x.classList.toggle("on", x === b));
-  renderText();
+  renderPane();
 });
 </script>
 </body>

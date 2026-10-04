@@ -21,6 +21,7 @@ Engines, in preference order:
 from __future__ import annotations
 
 import os
+import re
 import statistics
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -282,6 +283,130 @@ def columns(boxes: list[Box], gap_ratio: float = 2.5) -> list[tuple[float, float
     if cursor < page_r:
         cols.append((cursor, page_r))
     return [c for c in cols if c[1] - c[0] > cw * 4]
+
+
+# ==========================================================================
+# table extraction
+# ==========================================================================
+def split_cells(line: list[Box], cw: float, gap: float = 2.2) -> list[tuple[float, str]]:
+    """Split one line into cells wherever the horizontal gap gets wide.
+
+    Words inside a cell sit about one space apart. A column gutter is several
+    characters wide, so `gap` character-advances is a reliable separator and
+    scales with the page's own type size.
+    """
+    if not line:
+        return []
+    cells, start, parts = [], line[0].x0, [line[0].text]
+    for prev, box in zip(line, line[1:]):
+        if (box.x0 - prev.x1) > cw * gap:
+            cells.append((start, " ".join(parts)))
+            start, parts = box.x0, [box.text]
+        else:
+            parts.append(box.text)
+    cells.append((start, " ".join(parts)))
+    return cells
+
+
+_NUMERIC = re.compile(r"^[\s$£€₹]*[-+]?[\d,]+(?:\.\d+)?\s*%?$")
+
+
+def is_tabular(grid: list[list[str]]) -> bool:
+    """Separate a real table from two columns of prose.
+
+    Both align on the same anchors, so geometry alone cannot tell them apart.
+    What does: table cells are short, and tables usually carry a numeric
+    column. A two-column article has long cells and no numbers, so requiring
+    either short cells or a numeric column rejects it without rejecting a
+    text-only table like name / role / team.
+    """
+    cells = [c for row in grid for c in row if c.strip()]
+    if not cells:
+        return False
+
+    # A column counts as numeric if most of its filled cells parse as numbers.
+    cols = len(grid[0])
+    numeric_cols = 0
+    for k in range(cols):
+        vals = [row[k].strip() for row in grid if k < len(row) and row[k].strip()]
+        if len(vals) >= 2 and sum(bool(_NUMERIC.match(v)) for v in vals) / len(vals) >= 0.6:
+            numeric_cols += 1
+
+    median_len = statistics.median(len(c) for c in cells)
+    return numeric_cols >= 1 or median_len <= 18
+
+
+def detect_tables(boxes: list[Box], min_rows: int = 3, min_cols: int = 2) -> list[dict]:
+    """Find tabular regions and return them as real grids.
+
+    A table is a run of consecutive lines whose cells land on the same
+    vertical anchors. That is what separates a table from a paragraph: prose
+    starts every line at the left margin, a table repeats the same column
+    positions down the page.
+
+    Returns [{rows: [[str, ...], ...], bbox: [x0,y0,x1,y1], cols: int}].
+    """
+    lines = cluster_lines(boxes)
+    if len(lines) < min_rows:
+        return []
+
+    cw = char_width(boxes)
+    tol = cw * 3.5                     # how far a cell may drift and still count
+    per_line = [split_cells(line, cw) for line in lines]
+
+    def aligns(a, b) -> bool:
+        """Do two lines share at least min_cols anchors in common?"""
+        if len(a) < min_cols or len(b) < min_cols:
+            return False
+        hits = sum(1 for xa, _ in a if any(abs(xa - xb) <= tol for xb, _ in b))
+        return hits >= min_cols and hits >= min(len(a), len(b)) - 1
+
+    tables, i = [], 0
+    while i < len(per_line):
+        j = i
+        while j + 1 < len(per_line) and aligns(per_line[j], per_line[j + 1]):
+            j += 1
+
+        if j - i + 1 >= min_rows:
+            block = per_line[i:j + 1]
+
+            # Column anchors: cluster every cell x across the block.
+            anchors: list[float] = []
+            for row in block:
+                for x, _ in row:
+                    for k, a in enumerate(anchors):
+                        if abs(a - x) <= tol:
+                            anchors[k] = (a + x) / 2       # drift toward the mean
+                            break
+                    else:
+                        anchors.append(x)
+            anchors.sort()
+
+            grid = []
+            for row in block:
+                cells = [""] * len(anchors)
+                for x, text in row:
+                    k = min(range(len(anchors)), key=lambda n: abs(anchors[n] - x))
+                    cells[k] = (cells[k] + " " + text).strip() if cells[k] else text
+                grid.append(cells)
+
+            # Drop columns that ended up empty everywhere.
+            keep = [k for k in range(len(anchors)) if any(r[k] for r in grid)]
+            grid = [[r[k] for k in keep] for r in grid]
+
+            if grid and len(grid[0]) >= min_cols and is_tabular(grid):
+                flat = [b for line in lines[i:j + 1] for b in line]
+                tables.append({
+                    "rows": grid,
+                    "cols": len(grid[0]),
+                    "bbox": [
+                        round(min(b.x0 for b in flat), 1), round(min(b.y0 for b in flat), 1),
+                        round(max(b.x1 for b in flat), 1), round(max(b.y1 for b in flat), 1),
+                    ],
+                })
+        i = j + 1
+
+    return tables
 
 
 def analyse(boxes: list[Box]) -> dict:
