@@ -86,6 +86,15 @@ python server.py --whisper small.en     # most accurate, needs a bit more CPU
 python server.py --voice voices\en_US-ryan-high.onnx
 ```
 
+### Leaving
+
+The **Leave** button, top right, or `Esc`. It stops every microphone and
+camera track rather than only closing the peer, because closing the peer
+alone leaves the hardware live and the browser still showing its recording
+indicator on a call you think you have left. The server needs no message:
+the closed peer fires `connectionstatechange` and the session is dropped
+there. Rejoining starts a fresh conversation.
+
 ## Keeping it responsive
 
 Perceived lag in a voice agent is almost entirely the gap between the user

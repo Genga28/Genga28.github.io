@@ -59,6 +59,24 @@ body{
 .brandline span{ font-size:13px; color:var(--txt-2); }
 
 .badges{ display:flex; gap:8px; flex-wrap:wrap; }
+.leave{
+  display:inline-flex; align-items:center; gap:8px; padding:9px 16px 9px 13px;
+  border:1px solid rgba(255,120,130,.38); border-radius:999px; cursor:pointer;
+  background:rgba(255,90,105,.12); color:#ffb3bb; font:inherit; font-size:13.5px;
+  font-weight:600; letter-spacing:.01em; transition:background .2s, border-color .2s, color .2s;
+}
+.leave:hover{ background:rgba(255,90,105,.22); border-color:rgba(255,120,130,.7); color:#ffd2d7; }
+.leave:active{ transform:translateY(1px); }
+.leave .x{
+  width:16px; height:16px; border-radius:50%; background:currentColor; position:relative;
+  flex:none; opacity:.9;
+}
+/* the handset, rotated: the universal "hang up" and it needs no label to read */
+.leave .x::before{
+  content:""; position:absolute; inset:0; margin:auto; width:9px; height:9px;
+  border:2px solid #16161c; border-radius:3px 3px 0 0; border-bottom:0;
+  transform:rotate(135deg); top:3px;
+}
 .badge{
   font-size:12.5px; color:var(--txt-2); border:1px solid var(--line);
   background:rgba(18,25,39,.7); padding:7px 13px; border-radius:100px; backdrop-filter:blur(8px);
@@ -179,6 +197,9 @@ body.speaking  .statepill .dot{ background:var(--teal); box-shadow:0 0 14px var(
     <div class="badges" id="badges">
       <span class="badge"><span class="d"></span>connecting</span>
     </div>
+    <button class="leave" id="leaveBtn" hidden>
+      <span class="x" aria-hidden="true"></span>Leave
+    </button>
   </div>
 
   <div class="field">

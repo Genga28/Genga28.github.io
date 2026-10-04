@@ -12,6 +12,7 @@ const els = {
   gate: $("#gate"), join: $("#joinBtn"), badges: $("#badges"),
   state: $("#stateText"), capUser: $("#capUser"), capAgent: $("#capAgent"),
   audio: $("#agentAudio"), cam: $("#cam"), pip: $("#pip"), level: $("#level"),
+  leave: $("#leaveBtn"),
 };
 
 let pc, ws, session, analyser, levelData;
@@ -581,10 +582,66 @@ async function join() {
       }
     }
   };
-  ws.onclose = () => setState("idle");
+  // A dropped peer should land where hanging up lands, not in a half state
+  // with a dead room on screen and the microphone still live.
+  ws.onclose = () => leave();
+  // Captured, not read off the module variable: leave() nulls `pc`, and this
+  // handler fires during that teardown.
+  const peer = pc;
+  peer.onconnectionstatechange = () => {
+    if (["failed", "disconnected", "closed"].includes(peer.connectionState)) leave();
+  };
 
   els.gate.classList.add("gone");
+  els.leave.hidden = false;
   setState("listening");
+}
+
+/* Hanging up has to release the hardware, not just hide the UI. Closing the
+   peer connection alone leaves the microphone and camera live, and the
+   browser keeps showing the recording indicator on a call the user believes
+   they have left. Every track gets stopped explicitly.
+
+   The server needs no message: closing the peer fires connectionstatechange
+   there, which drops the session and its history. */
+let leaving = false;
+
+function leave() {
+  // Idempotent on purpose. Tearing down fires the very events that call this
+  // again: closing the socket runs ws.onclose, closing the peer runs
+  // onconnectionstatechange, and both land back here mid-teardown with the
+  // references already nulled.
+  if (leaving) return;
+  leaving = true;
+
+  for (const stop of [
+    () => ws && ws.close(),
+    () => pc && pc.getSenders().forEach((s) => s.track && s.track.stop()),
+    () => pc && pc.getReceivers().forEach((r) => r.track && r.track.stop()),
+    () => pc && pc.close(),
+    () => {
+      const cam = els.cam.srcObject;
+      if (cam) cam.getTracks().forEach((t) => t.stop());
+      els.cam.srcObject = null;
+    },
+    () => { els.audio.pause(); els.audio.srcObject = null; },
+  ]) {
+    try { stop(); } catch (err) { console.warn("leave:", err); }
+  }
+
+  pc = ws = session = null;
+  analyser = null;              // the jaw falls shut on its own from here
+  els.pip.classList.remove("on");
+  els.leave.hidden = true;
+  showCaption(els.capUser, "", false);
+  showCaption(els.capAgent, "", false);
+  els.capUser.classList.remove("live");
+  setState("idle");
+
+  els.gate.classList.remove("gone");
+  els.join.disabled = false;
+  els.join.textContent = "Join the room";
+  leaving = false;
 }
 
 /* Posing hook for the offline check: lets the avatar be rendered at a known
@@ -617,4 +674,8 @@ window.__aria = {
 };
 
 els.join.addEventListener("click", join);
+els.leave.addEventListener("click", leave);
+addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !els.leave.hidden) leave();
+});
 addEventListener("beforeunload", () => { try { pc && pc.close(); ws && ws.close(); } catch {} });
